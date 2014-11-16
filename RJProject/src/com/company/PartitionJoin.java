@@ -20,6 +20,8 @@ import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.util.*;
 
+//We can now begin tetsing
+
 public class PartitionJoin {
 
     public static class PartitionMapper extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
