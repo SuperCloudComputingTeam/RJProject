@@ -27,40 +27,78 @@ public class PartitionJoin {
     public static class PartitionMapper extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
         private final static IntWritable one = new IntWritable(1);
         private String tag = new String();
-        private Text record = new Text();
 
         //initiate a look up table accessible for all
         private HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 
         //the setup function will be called only once to populate the lookupTable
-        public void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException {
-            try {
-                Path path = new Path("/input/lookupTable.txt");
-                FileSystem fs = FileSystem.get(new Configuration());
-                BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
+//        public void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException {
+//            try {
+//                Path path = new Path("hdfs://PartitionJoin/lookupTable.txt");
+//                FileSystem fs = FileSystem.get(new Configuration());
+//                BufferedReader br = new BufferedReader(new InputStreamReader(fs.open(path)));
+//
+//                try {
+//                    String line;
+//                    line = br.readLine();
+//                    while (line != null) {
+//                        String[] parts = line.split("-");
+//                        String[] num = parts[1].split(" ");
+//                        ArrayList numList = new ArrayList();
+//                        for (String x : num) {
+//                            numList.add(Integer.parseInt(x));
+//                        }
+//                        lookupTable.put(new String(parts[0]), new ArrayList(numList));
+//                        line = br.readLine();
+//                    }
+//                } catch (IOException e) {
+//                    System.out.println("Exception while populating lookup table");
+//                    e.printStackTrace();
+//                } finally {
+//                    br.close();
+//                }
+//            } catch (Exception e) {
+//                System.out.println("Exception while reading the lookup table");
+//                e.printStackTrace();
+//            }
+//        }
 
-                try {
-                    String line;
-                    line = br.readLine();
-                    while (line != null) {
-                        String[] parts = line.split("-");
-                        String[] num = parts[1].split(" ");
-                        ArrayList numList = new ArrayList();
-                        for (String x : num) {
-                            numList.add(Integer.parseInt(x));
-                        }
-                        lookupTable.put(new String(parts[0]), new ArrayList(numList));
-                        line = br.readLine();
-                    }
-                } catch (IOException e) {
-                    System.out.println("Exception while populating lookup table");
-                    e.printStackTrace();
-                } finally {
-                    br.close();
-                }
-            } catch (Exception e) {
-                System.out.println("Exception while reading the lookup table");
-                e.printStackTrace();
+        public void setup(org.apache.hadoop.mapreduce.Mapper.Context context){
+            for(int i = 0; i <5; i++){
+                String line = new String("S");
+                line = line+Integer.toString(i);
+                ArrayList<Integer> reducers = new ArrayList<Integer>();
+                reducers.add(1);
+                reducers.add(2);
+                lookupTable.put(line, reducers);
+            }
+
+            for(int i = 5; i < 10; i++){
+                String line = new String("S");
+                line = line+Integer.toString(i);
+                ArrayList<Integer> reducers = new ArrayList<Integer>();
+                reducers.add(3);
+                reducers.add(4);
+                lookupTable.put(line, reducers);
+            }
+
+            //for T column
+            for(int i = 0; i <5; i++){
+                String line = new String("T");
+                line = line+Integer.toString(i);
+                ArrayList<Integer> reducers = new ArrayList<Integer>();
+                reducers.add(1);
+                reducers.add(3);
+                lookupTable.put(line, reducers);
+            }
+
+            for(int i = 5; i < 10; i++){
+                String line = new String("T");
+                line = line+Integer.toString(i);
+                ArrayList<Integer> reducers = new ArrayList<Integer>();
+                reducers.add(2);
+                reducers.add(4);
+                lookupTable.put(line, reducers);
             }
         }
 
@@ -70,6 +108,7 @@ public class PartitionJoin {
             //split up the string from the tag and the rest of the key and values
             int i = line.indexOf(' ');
             tag = line.substring(0, i);
+            Text record = new Text();
             record.set(line.substring(i));
 
             //look up in the lookup table and retrieve the reducer list
@@ -78,9 +117,11 @@ public class PartitionJoin {
 
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
-            for (Integer j : reducersArray) {
-                output.collect(new IntWritable(j), record);
-            }
+//            for (Integer j : reducersArray) {
+//                //does it like j to be Integer?
+//                output.collect(new IntWritable(1), record);
+//            }
+            output.collect(new IntWritable(1), record);
         }
     }
 
@@ -146,6 +187,7 @@ public class PartitionJoin {
         conf.setMapperClass(PartitionMapper.class);
         conf.setCombinerClass(Reduce.class);
         conf.setReducerClass(Reduce.class);
+        conf.setNumReduceTasks(4);
 
         conf.setInputFormat(TextInputFormat.class);
         conf.setOutputFormat(TextOutputFormat.class);
