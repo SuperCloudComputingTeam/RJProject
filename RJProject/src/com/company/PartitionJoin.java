@@ -25,9 +25,6 @@ import org.apache.hadoop.util.*;
 public class PartitionJoin {
 
     public static class PartitionMapper extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
-        private final static IntWritable one = new IntWritable(1);
-        private String tag = new String();
-
         //initiate a look up table accessible for all
         private HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 
@@ -103,76 +100,86 @@ public class PartitionJoin {
         }
 
         public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
+            Text record = new Text();
             String line = value.toString();
 
             //split up the string from the tag and the rest of the key and values
-            int i = line.indexOf(' ');
-            tag = line.substring(0, i);
-            Text record = new Text();
-            record.set(line.substring(i));
+            int i = line.indexOf(" ");
+            String tag = line.substring(0, i);
+            line = (line.substring(i+1));
+            record.set(line);
 
             //look up in the lookup table and retrieve the reducer list
-            String tagKey = tag.toString();
-            ArrayList<Integer> reducersArray = lookupTable.get(tagKey);
+//            String tagKey = tag.toString();
+            ArrayList<Integer> reducersArray = lookupTable.get(tag);
 
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
-//            for (Integer j : reducersArray) {
-//                //does it like j to be Integer?
-//                output.collect(new IntWritable(1), record);
-//            }
-            output.collect(new IntWritable(1), record);
+            for (int k = 0; k < reducersArray.size(); k++) {
+                output.collect(new IntWritable(k), record);
+            }
+            //word.set(value);
+//            Text record = new Text();
+//            record.set(line);
+//            output.collect(new IntWritable(1), record);
         }
     }
 
     public static class Reduce extends MapReduceBase implements Reducer<IntWritable, Text, IntWritable, Text> {
         public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
             //two tables initialization to perform the joining
-            List<String> tableS = new ArrayList<String>();
-            List<String> tableT = new ArrayList<String>();
-
-            //group the records in the iterator into table S and table T
-            while (values.hasNext()) {
-                String record = values.next().toString();
-                int i = record.indexOf(' ');
-                String tag = record.substring(0, i);
-                String value = record.substring(i);
-
-                if (tag == "S") {
-                    tableS.add(value);
-                } else {
-                    tableT.add(value);
-                }
-            }
-
-            //perform the join using your preference of join algorithm
-            //pick either one table and hash it
-            HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
-            for (String s : tableS) {
-                //if the key doesn't exist
-                if (hm.get(s.substring(0, s.indexOf(' '))) == null) {
-                    ArrayList<String> list = new ArrayList<String>();
-                    list.add(s.substring(s.indexOf(' ')));
-                    hm.put(s.substring(0, s.indexOf(' ')), list);
-                } else {
-                    //same key exists, then add it to the array list
-                    hm.get(s.substring(0, s.indexOf(' '))).add(s.substring(s.indexOf(' ')));
-                }
-            }
-
-            //then iterate through the other table to produce the result
-            for (String t : tableT) {
-                //check to see if there's a match
-                String hashKey = t.substring(0, t.indexOf(' '));
-                if (hm.get(hashKey) != null) {
-                    //match
-                    for (String s : hm.get(hashKey)) {
-                        String result = s + ":" + hashKey + ":" + t;
-                        output.collect(key, new Text(result));
-                    }
-                } else {
-                    //no match and don't do anything
-                }
+//            List<String> tableS = new ArrayList<String>();
+//            List<String> tableT = new ArrayList<String>();
+//
+//            //group the records in the iterator into table S and table T
+//            while (values.hasNext()) {
+//                String record = values.next().toString();
+//                int i = record.indexOf(' ');
+//                String tag = record.substring(0, i);
+//                String value = record.substring(i);
+//
+//                if (tag == "S") {
+//                    tableS.add(value);
+//                } else {
+//                    tableT.add(value);
+//                }
+//            }
+//
+//            //perform the join using your preference of join algorithm
+//            //pick either one table and hash it
+//            HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
+//            for (String s : tableS) {
+//                //if the key doesn't exist
+//                if (hm.get(s.substring(0, s.indexOf(' '))) == null) {
+//                    ArrayList<String> list = new ArrayList<String>();
+//                    list.add(s.substring(s.indexOf(' ')));
+//                    hm.put(s.substring(0, s.indexOf(' ')), list);
+//                } else {
+//                    //same key exists, then add it to the array list
+//                    hm.get(s.substring(0, s.indexOf(' '))).add(s.substring(s.indexOf(' ')));
+//                }
+//            }
+//
+//            //then iterate through the other table to produce the result
+//            for (String t : tableT) {
+//                //check to see if there's a match
+//                String hashKey = t.substring(0, t.indexOf(' '));
+//                if (hm.get(hashKey) != null) {
+//                    //match
+//                    for (String s : hm.get(hashKey)) {
+//                        String result = s + ":" + hashKey + ":" + t;
+//                        output.collect(key, new Text(result));
+//                    }
+//                } else {
+//                    //no match and don't do anything
+//                }
+//            }
+            IntWritable key1=null;
+            while(values.hasNext()){
+               //key1=new IntWritable(key.get());
+                //output.collect(key1,new Text("Hello world"));
+                //System.out.println("Key is:" + key1);
+                output.collect(key, values.next());
             }
         }
     }
