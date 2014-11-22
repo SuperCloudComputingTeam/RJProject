@@ -153,8 +153,8 @@ public class PartitionJoin {
 
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
-            for (int k = 0; k < reducersArray.size(); k++) {
-                int j = reducersArray.get(k);
+            for (Integer aReducersArray : reducersArray) {
+                int j = aReducersArray;
                 output.collect(new IntWritable(j), record);
                 //test breaking point
                 //output.collect(new IntWritable(10), new Text("HelloWorld"));
@@ -169,13 +169,13 @@ public class PartitionJoin {
     public static class Reduce extends MapReduceBase implements Reducer<IntWritable, Text, IntWritable, Text> {
         public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
             //two tables initialization to perform the joining
-            List<String> tableS = new ArrayList<String>();
-            List<String> tableT = new ArrayList<String>();
+            ArrayList<String> tableS = new ArrayList<String>();
+            ArrayList<String> tableT = new ArrayList<String>();
 
             //group the records in the iterator into table S and table T
             while (values.hasNext()) {
                 String record = values.next().toString();
-                int i = record.indexOf(' ');
+                int i = record.indexOf(" ");
                 String tag = record.substring(0, i);
                 String value = record.substring(i+1);
 
@@ -190,14 +190,16 @@ public class PartitionJoin {
             //pick either one table and hash it
             HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
             for (String s : tableS) {
+                int i = s.indexOf(" ");
+                String keyValue = s.substring(0, i);
                 //if the key doesn't exist
-                if (hm.get(s.substring(0, s.indexOf(' '))) == null) {
+                if (hm.get(keyValue) == null) {
                     ArrayList<String> list = new ArrayList<String>();
-                    list.add(s.substring(s.indexOf(' ')));
-                    hm.put(s.substring(0, s.indexOf(' ')), list);
+                    list.add(s.substring(i+1));
+                    hm.put(keyValue, list);
                 } else {
                     //same key exists, then add it to the array list
-                    hm.get(s.substring(0, s.indexOf(' '))).add(s.substring(s.indexOf(' ')));
+                   hm.get(keyValue).add(s.substring(i+1));
                 }
             }
 
@@ -205,14 +207,14 @@ public class PartitionJoin {
             for (String t : tableT) {
                 //check to see if there's a match
                 String hashKey = t.substring(0, t.indexOf(' '));
-                if (hm.get(hashKey) != null) {
+                if (hm.get(hashKey) == null) {
+                    //no match and don't do anything
+                } else {
                     //match
                     for (String s : hm.get(hashKey)) {
                         String result = s + " " + hashKey + ":" + t;
                         output.collect(key, new Text(result));
                     }
-                } else {
-                    //no match and don't do anything
                 }
             }
 
