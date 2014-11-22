@@ -171,42 +171,46 @@ public class PartitionJoin {
             //two tables initialization to perform the joining
             ArrayList<String> tableS = new ArrayList<String>();
             ArrayList<String> tableT = new ArrayList<String>();
+            Text results = new Text();
 
             //group the records in the iterator into table S and table T
             while (values.hasNext()) {
                 String record = values.next().toString();
-                int i = record.indexOf(" ");
-                String tag = record.substring(0, i);
-                String value = record.substring(i+1);
+                String tag = record.substring(0,1);
+                String value = record.substring(2);
 
                 if (tag.contentEquals("S")) {
                     tableS.add(value);
-                } else {
+                } else if(tag.contentEquals("T")) {
                     tableT.add(value);
                 }
+
+                results.set(tag);
+                output.collect(key,results );
+                results.set(value);
+                output.collect(key, results);
             }
 
-            //perform the join using your preference of join algorithm
-            //pick either one table and hash it
+//            //perform the join using your preference of join algorithm
+//            //pick either one table and hash it
             HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
-            for (String s : tableS) {
-                int i = s.indexOf(" ");
-                String keyValue = s.substring(0, i);
+            for (String s : tableS){
+                String keyValue = s.substring(0, 1);
                 //if the key doesn't exist
                 if (hm.get(keyValue) == null) {
                     ArrayList<String> list = new ArrayList<String>();
-                    list.add(s.substring(i+1));
+                    list.add(s.substring(2));
                     hm.put(keyValue, list);
                 } else {
                     //same key exists, then add it to the array list
-                   hm.get(keyValue).add(s.substring(i+1));
+                   hm.get(keyValue).add(s.substring(2));
                 }
             }
-
-            //then iterate through the other table to produce the result
+//
+//            //then iterate through the other table to produce the result
             for (String t : tableT) {
                 //check to see if there's a match
-                String hashKey = t.substring(0, t.indexOf(' '));
+                String hashKey = t.substring(0, 1);
                 if (hm.get(hashKey) == null) {
                     //no match and don't do anything
                 } else {
@@ -217,6 +221,9 @@ public class PartitionJoin {
                     }
                 }
             }
+//
+//            IntWritable i = new IntWritable(1);
+//            output.collect(i, new Text("Matched!"));
 
 //            while(values.hasNext()){
 //               //key1=new IntWritable(key.get());
@@ -235,7 +242,7 @@ public class PartitionJoin {
         conf.setOutputValueClass(Text.class);
 
         conf.setMapperClass(PartitionMapper.class);
-        conf.setCombinerClass(Reduce.class);
+        //conf.setCombinerClass(Reduce.class);
         conf.setReducerClass(Reduce.class);
         conf.setNumReduceTasks(4);
 
