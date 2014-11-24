@@ -26,6 +26,20 @@ public class PartitionJoin {
 
     public static class PartitionMapper extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
         //initiate a look up table accessible for all
+        //private org.apache.hadoop.io.MapWritable<Text, IntArrayWritable> lookupTableTwo = new MapWritable(Text, IntArrayWritable);
+        private static MapWritable lookupTable;
+
+        //convert map to MapWritable
+        private MapWritable toMapWritable(Map<String, String> map){
+            MapWritable result = new MapWritable();
+            if(map != null){
+                for(Map.Entry<String, String> entry : map.entrySet()){
+                    result.put(new Text(entry.getKey()), new Text(entry.getValue()));
+                }
+            }
+            return result;
+        }
+
         //private HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 
         //the setup function will be called only once to populate the lookupTable
@@ -60,13 +74,60 @@ public class PartitionJoin {
 //            }
 //        }
 
-//        public void setup(org.apache.hadoop.mapreduce.Mapper.Context context){
+        //An intArrayWritable class
+//        public class IntArrayWritable extends ArrayWritable{
+//            public IntArrayWritable(){
+//                super(IntWritable.class);
+//            }
+//        }
+
+
+        public void setup(org.apache.hadoop.mapreduce.Mapper.Context context){
+            Map<String, String> map = new HashMap<String, String>();
+
+            for(int i = 0; i <5; i++){
+                String line = "S";
+                line = line+Integer.toString(i);
+                String reducers = "1 2";
+                map.put(line, reducers);
+            }
+
+            for(int i = 5; i < 10; i++){
+                String line = "S";
+                line = line+Integer.toString(i);
+                String reducers = "3 4";
+                map.put(line, reducers);
+            }
+
+            //for T column
+            for(int i = 0; i <5; i++){
+                String line = "T";
+                line = line+Integer.toString(i);
+                String reducers = "1 3";
+                map.put(line, reducers);
+            }
+
+            for(int i = 5; i < 10; i++){
+                String line = "T";
+                line = line+Integer.toString(i);
+                String reducers = "2 4";
+                map.put(line, reducers);
+            }
+
+            //populate the mapWritable
+            lookupTable = toMapWritable(map);
+        }
+
+        //map function that assigns each record to the assigned reducers based on the lookup table
+        public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
+
+//            HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 //            for(int i = 0; i <5; i++){
 //                String line = new String("S");
 //                line = line+Integer.toString(i);
 //                ArrayList<Integer> reducers = new ArrayList<Integer>();
+//                reducers.add(0);
 //                reducers.add(1);
-//                reducers.add(2);
 //                lookupTable.put(line, reducers);
 //            }
 //
@@ -74,8 +135,8 @@ public class PartitionJoin {
 //                String line = new String("S");
 //                line = line+Integer.toString(i);
 //                ArrayList<Integer> reducers = new ArrayList<Integer>();
+//                reducers.add(2);
 //                reducers.add(3);
-//                reducers.add(4);
 //                lookupTable.put(line, reducers);
 //            }
 //
@@ -84,8 +145,8 @@ public class PartitionJoin {
 //                String line = new String("T");
 //                line = line+Integer.toString(i);
 //                ArrayList<Integer> reducers = new ArrayList<Integer>();
-//                reducers.add(1);
-//                reducers.add(3);
+//                reducers.add(0);
+//                reducers.add(2);
 //                lookupTable.put(line, reducers);
 //            }
 //
@@ -93,50 +154,10 @@ public class PartitionJoin {
 //                String line = new String("T");
 //                line = line+Integer.toString(i);
 //                ArrayList<Integer> reducers = new ArrayList<Integer>();
-//                reducers.add(2);
-//                reducers.add(4);
+//                reducers.add(1);
+//                reducers.add(3);
 //                lookupTable.put(line, reducers);
 //            }
-//        }
-
-        public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
-            HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
-            for(int i = 0; i <5; i++){
-                String line = new String("S");
-                line = line+Integer.toString(i);
-                ArrayList<Integer> reducers = new ArrayList<Integer>();
-                reducers.add(0);
-                reducers.add(1);
-                lookupTable.put(line, reducers);
-            }
-
-            for(int i = 5; i < 10; i++){
-                String line = new String("S");
-                line = line+Integer.toString(i);
-                ArrayList<Integer> reducers = new ArrayList<Integer>();
-                reducers.add(2);
-                reducers.add(3);
-                lookupTable.put(line, reducers);
-            }
-
-            //for T column
-            for(int i = 0; i <5; i++){
-                String line = new String("T");
-                line = line+Integer.toString(i);
-                ArrayList<Integer> reducers = new ArrayList<Integer>();
-                reducers.add(0);
-                reducers.add(2);
-                lookupTable.put(line, reducers);
-            }
-
-            for(int i = 5; i < 10; i++){
-                String line = new String("T");
-                line = line+Integer.toString(i);
-                ArrayList<Integer> reducers = new ArrayList<Integer>();
-                reducers.add(1);
-                reducers.add(3);
-                lookupTable.put(line, reducers);
-            }
 
             Text record = new Text();
             String line = value.toString();
@@ -149,12 +170,15 @@ public class PartitionJoin {
 
             //look up in the lookup table and retrieve the reducer list
 //            String tagKey = tag.toString();
-            ArrayList<Integer> reducersArray = lookupTable.get(tag);
+            Text tagKey = new Text();
+            tagKey.set(tag);
+            String[] reducersArray = ((Text)lookupTable.get(tagKey)).toString().split(" ");
+
 
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
-            for (Integer aReducersArray : reducersArray) {
-                int j = aReducersArray;
+            for (String  reducerID : reducersArray) {
+                int j = Integer.parseInt(reducerID);
                 output.collect(new IntWritable(j), record);
                 //test breaking point
                 //output.collect(new IntWritable(10), new Text("HelloWorld"));
@@ -184,11 +208,6 @@ public class PartitionJoin {
                 } else if(tag.contentEquals("T")) {
                     tableT.add(value);
                 }
-
-                results.set(tag);
-                output.collect(key,results );
-                results.set(value);
-                output.collect(key, results);
             }
 
 //            //perform the join using your preference of join algorithm
@@ -221,7 +240,6 @@ public class PartitionJoin {
                     }
                 }
             }
-//
 //            IntWritable i = new IntWritable(1);
 //            output.collect(i, new Text("Matched!"));
 

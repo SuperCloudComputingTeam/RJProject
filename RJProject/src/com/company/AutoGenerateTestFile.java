@@ -11,7 +11,7 @@ public class AutoGenerateTestFile {
     public static void main(String[] args)throws IOException{
         PrintWriter writer = new PrintWriter("T.txt", "UTF-8");
 
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 10000000; i++){
             String line = new String("T");
 
             //Represent the lookup table index
@@ -35,7 +35,7 @@ public class AutoGenerateTestFile {
 
         writer = new PrintWriter("S.txt", "UTF-8");
 
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 10000000; i++){
             String line = new String("S");
 
             //Represent the lookup table index
