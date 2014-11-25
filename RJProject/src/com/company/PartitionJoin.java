@@ -14,23 +14,26 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.io.*;
-import org.apache.hadoop.mapred.*;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.Reducer;
 import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.*;
+import org.apache.hadoop.util.hash.Hash;
 
 //We can now begin tetsing
 
 public class PartitionJoin {
 
-    public static class PartitionMapper extends MapReduceBase implements Mapper<LongWritable, Text, IntWritable, Text> {
+    public static class PartitionMapper extends Mapper<Object, Text, IntWritable, Text> {
         //initiate a look up table accessible for all
         //private org.apache.hadoop.io.MapWritable<Text, IntArrayWritable> lookupTableTwo = new MapWritable(Text, IntArrayWritable);
-        private static MapWritable lookupTable;
+        private static MapWritable lookupTable = new MapWritable();
 
         //convert map to MapWritable
-        private MapWritable toMapWritable(Map<String, String> map){
+        private MapWritable toMapWritable(HashMap<String, String> map){
             MapWritable result = new MapWritable();
             if(map != null){
                 for(Map.Entry<String, String> entry : map.entrySet()){
@@ -74,16 +77,16 @@ public class PartitionJoin {
 //            }
 //        }
 
-        //An intArrayWritable class
+        //An ArrayWritable class
 //        public class IntArrayWritable extends ArrayWritable{
 //            public IntArrayWritable(){
 //                super(IntWritable.class);
 //            }
 //        }
 
-
-        public void setup(org.apache.hadoop.mapreduce.Mapper.Context context){
-            Map<String, String> map = new HashMap<String, String>();
+        @Override
+        protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException{
+            HashMap<String, String> map = new HashMap<String, String>();
 
             for(int i = 0; i <5; i++){
                 String line = "S";
@@ -119,7 +122,7 @@ public class PartitionJoin {
         }
 
         //map function that assigns each record to the assigned reducers based on the lookup table
-        public void map(LongWritable key, Text value, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
+        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 
 //            HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 //            for(int i = 0; i <5; i++){
@@ -172,14 +175,21 @@ public class PartitionJoin {
 //            String tagKey = tag.toString();
             Text tagKey = new Text();
             tagKey.set(tag);
+
+//            if(lookupTable.containsKey(tagKey)){
+//                context.write(new IntWritable(1), new Text("Contains Key"));
+//            }
+//            else{
+//                context.write(new IntWritable(1), new Text("Key does not exist"));
+//            }
             String[] reducersArray = ((Text)lookupTable.get(tagKey)).toString().split(" ");
 
-
+            //output.collect(new IntWritable(1), reducersArray );
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
             for (String  reducerID : reducersArray) {
                 int j = Integer.parseInt(reducerID);
-                output.collect(new IntWritable(j), record);
+                context.write(new IntWritable(j), record);
                 //test breaking point
                 //output.collect(new IntWritable(10), new Text("HelloWorld"));
             }
@@ -190,18 +200,18 @@ public class PartitionJoin {
         }
     }
 
-    public static class Reduce extends MapReduceBase implements Reducer<IntWritable, Text, IntWritable, Text> {
-        public void reduce(IntWritable key, Iterator<Text> values, OutputCollector<IntWritable, Text> output, Reporter reporter) throws IOException {
+    public static class Reduce extends Reducer<IntWritable, Text, IntWritable, Text> {
+        public void reduce(IntWritable key, Iterator<Text> values, Context context) throws IOException, InterruptedException {
             //two tables initialization to perform the joining
             ArrayList<String> tableS = new ArrayList<String>();
             ArrayList<String> tableT = new ArrayList<String>();
-            Text results = new Text();
 
             //group the records in the iterator into table S and table T
             while (values.hasNext()) {
                 String record = values.next().toString();
-                String tag = record.substring(0,1);
-                String value = record.substring(2);
+                int i = record.indexOf(" ");
+                String tag = record.substring(0,i);
+                String value = record.substring(i+1);
 
                 if (tag.contentEquals("S")) {
                     tableS.add(value);
@@ -214,62 +224,73 @@ public class PartitionJoin {
 //            //pick either one table and hash it
             HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
             for (String s : tableS){
-                String keyValue = s.substring(0, 1);
+                int i = s.indexOf(" ");
+                String keyValue = s.substring(0, i);
                 //if the key doesn't exist
-                if (hm.get(keyValue) == null) {
+                if (!hm.containsKey(keyValue)) {
                     ArrayList<String> list = new ArrayList<String>();
-                    list.add(s.substring(2));
+                    list.add(s.substring(i+1));
                     hm.put(keyValue, list);
                 } else {
                     //same key exists, then add it to the array list
-                   hm.get(keyValue).add(s.substring(2));
+                   hm.get(keyValue).add(s.substring(i+1));
                 }
             }
 //
 //            //then iterate through the other table to produce the result
             for (String t : tableT) {
                 //check to see if there's a match
-                String hashKey = t.substring(0, 1);
-                if (hm.get(hashKey) == null) {
+                int i = t.indexOf(" ");
+                String hashKey = t.substring(0, i);
+                if (!hm.containsKey(hashKey)) {
                     //no match and don't do anything
                 } else {
                     //match
                     for (String s : hm.get(hashKey)) {
                         String result = s + " " + hashKey + ":" + t;
-                        output.collect(key, new Text(result));
+                        context.write(key, new Text(result));
                     }
                 }
             }
-//            IntWritable i = new IntWritable(1);
-//            output.collect(i, new Text("Matched!"));
-
-//            while(values.hasNext()){
-//               //key1=new IntWritable(key.get());
-//                //output.collect(key1,new Text("Hello world"));
-//                //System.out.println("Key is:" + key1);
-//                output.collect(key, values.next());
-//            }
+////            IntWritable i = new IntWritable(1);
+////            output.collect(i, new Text("Matched!"));
         }
     }
 
     public static void main(String[] args) throws Exception {
-        JobConf conf = new JobConf(PartitionJoin.class);
-        conf.setJobName("PartitionJoin");
+//        JobConf conf = new JobConf(PartitionJoin.class);
+//        conf.setJobName("PartitionJoin");
+//
+//        conf.setOutputKeyClass(IntWritable.class);
+//        conf.setOutputValueClass(Text.class);
+//
+//        conf.setMapperClass(PartitionMapper.class);
+//        //conf.setCombinerClass(Reduce.class);
+//        conf.setReducerClass(Reduce.class);
+//        conf.setNumReduceTasks(4);
+//
+//        conf.setInputFormat(TextInputFormat.class);
+//        conf.setOutputFormat(TextOutputFormat.class);
+//
+//        FileInputFormat.setInputPaths(conf, new Path(args[0]));
+//        FileOutputFormat.setOutputPath(conf, new Path(args[1]));
+//
+//        JobClient.runJob(conf);
 
-        conf.setOutputKeyClass(IntWritable.class);
-        conf.setOutputValueClass(Text.class);
+        //After switching to a new version of mapreduce, 2.3.0
+        //below is the new codes for setting up the job configuration
+        Configuration conf = new Configuration();
+        Job job = Job.getInstance(conf, "PartitionJoin");
+        job.setJarByClass(PartitionJoin.class);
+        job.setMapperClass(PartitionMapper.class);
+        job.setReducerClass(Reduce.class);
+        job.setOutputKeyClass(IntWritable.class);
+        job.setOutputValueClass(Text.class);
+        job.setNumReduceTasks(4);
 
-        conf.setMapperClass(PartitionMapper.class);
-        //conf.setCombinerClass(Reduce.class);
-        conf.setReducerClass(Reduce.class);
-        conf.setNumReduceTasks(4);
+        FileInputFormat.addInputPath(job, new Path(args[0]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        conf.setInputFormat(TextInputFormat.class);
-        conf.setOutputFormat(TextOutputFormat.class);
-
-        FileInputFormat.setInputPaths(conf, new Path(args[0]));
-        FileOutputFormat.setOutputPath(conf, new Path(args[1]));
-
-        JobClient.runJob(conf);
+        System.exit(job.waitForCompletion(true) ? 0 : 1);
     }
 }
