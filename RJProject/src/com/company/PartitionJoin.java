@@ -176,13 +176,16 @@ public class PartitionJoin {
             Text tagKey = new Text();
             tagKey.set(tag);
 
-//            if(lookupTable.containsKey(tagKey)){
-//                context.write(new IntWritable(1), new Text("Contains Key"));
-//            }
-//            else{
-//                context.write(new IntWritable(1), new Text("Key does not exist"));
-//            }
-            String[] reducersArray = ((Text)lookupTable.get(tagKey)).toString().split(" ");
+            String[] reducersArray = null;
+
+            if(lookupTable.containsKey(tagKey)){
+                reducersArray = ((Text)lookupTable.get(tagKey)).toString().split(" ");
+            }
+            else{
+                //do nothing
+            }
+
+
 
             //output.collect(new IntWritable(1), reducersArray );
             //loop through the reducerArray and form key and value pair
