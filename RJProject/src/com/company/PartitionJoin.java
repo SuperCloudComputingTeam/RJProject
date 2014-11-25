@@ -122,7 +122,7 @@ public class PartitionJoin {
         }
 
         //map function that assigns each record to the assigned reducers based on the lookup table
-        public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 
 //            HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 //            for(int i = 0; i <5; i++){
@@ -200,15 +200,15 @@ public class PartitionJoin {
         }
     }
 
-    public static class Reduce extends Reducer<IntWritable, Text, IntWritable, Text> {
-        public void reduce(IntWritable key, Iterator<Text> values, Context context) throws IOException, InterruptedException {
+    public static class PartitionReducer extends Reducer<IntWritable, Text, IntWritable, Text> {
+        public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             //two tables initialization to perform the joining
             ArrayList<String> tableS = new ArrayList<String>();
             ArrayList<String> tableT = new ArrayList<String>();
 
             //group the records in the iterator into table S and table T
-            while (values.hasNext()) {
-                String record = values.next().toString();
+            for(Text val : values){
+                String record = val.toString();
                 int i = record.indexOf(" ");
                 String tag = record.substring(0,i);
                 String value = record.substring(i+1);
@@ -252,8 +252,8 @@ public class PartitionJoin {
                     }
                 }
             }
-////            IntWritable i = new IntWritable(1);
-////            output.collect(i, new Text("Matched!"));
+//            IntWritable i = new IntWritable(1);
+//            context.write(i, new Text("Matched!"));
         }
     }
 
@@ -283,7 +283,7 @@ public class PartitionJoin {
         Job job = Job.getInstance(conf, "PartitionJoin");
         job.setJarByClass(PartitionJoin.class);
         job.setMapperClass(PartitionMapper.class);
-        job.setReducerClass(Reduce.class);
+        job.setReducerClass(PartitionReducer.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
         job.setNumReduceTasks(4);

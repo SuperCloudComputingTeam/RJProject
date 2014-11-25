@@ -1,0 +1,5 @@
+*.xml
+RJProject/.idea
+*.class
+RJProject/out
+RJProject/lib
