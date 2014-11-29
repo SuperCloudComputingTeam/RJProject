@@ -25,12 +25,16 @@ import org.apache.hadoop.util.hash.Hash;
 
 //We can now begin tetsing
 
-public class PartitionJoin {
+public class PartitionJoin extends Configured implements Tool{
 
     public static class PartitionMapper extends Mapper<Object, Text, IntWritable, Text> {
         //initiate a look up table accessible for all
         //private org.apache.hadoop.io.MapWritable<Text, IntArrayWritable> lookupTableTwo = new MapWritable(Text, IntArrayWritable);
         private static MapWritable lookupTable = new MapWritable();
+
+        //size information for S and T table
+        private IntWritable sSize;
+        private IntWritable tSize;
 
         //convert map to MapWritable
         private MapWritable toMapWritable(HashMap<String, String> map){
@@ -86,6 +90,12 @@ public class PartitionJoin {
 
         @Override
         protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException{
+            Configuration config = context.getConfiguration();
+            String[] tableSizes = config.get("table.size").split(" ");
+
+            sSize.set(Integer.parseInt(tableSizes[0]));
+            tSize.set(Integer.parseInt(tableSizes[1]));
+
             HashMap<String, String> map = new HashMap<String, String>();
 
             for(int i = 0; i <5; i++){
@@ -171,9 +181,20 @@ public class PartitionJoin {
             //split up the string from the tag and the rest of the key and values
             int i = line.indexOf(" ");
             String tag = line.substring(0, i);
-            line = (line.substring(i+1));
+            //line = (line.substring(i+1));
             record.set(line);
 
+            //simulation of the randomized algorithm
+            if(tag.contains("S")){
+                Random rand = new Random();
+                int randInt = rand.nextInt(sSize.get())+1;
+                tag = tag + Integer.toString(randInt);
+            }
+            else if(tag.contains("T")){
+                Random rand = new Random();
+                int randInt = rand.nextInt(tSize.get())+1;
+                tag = tag + Integer.toString(randInt);
+            }
             //look up in the lookup table and retrieve the reducer list
 //            String tagKey = tag.toString();
             Text tagKey = new Text();
@@ -285,7 +306,30 @@ public class PartitionJoin {
 
         //After switching to a new version of mapreduce, 2.3.0
         //below is the new codes for setting up the job configuration
-        Configuration conf = new Configuration();
+//        Configuration conf = new Configuration();
+//        Job job = Job.getInstance(conf, "PartitionJoin");
+//        job.setJarByClass(PartitionJoin.class);
+//        job.setMapperClass(PartitionMapper.class);
+//        job.setReducerClass(PartitionReducer.class);
+//        job.setOutputKeyClass(IntWritable.class);
+//        job.setOutputValueClass(Text.class);
+//        job.setNumReduceTasks(4);
+//
+//        FileInputFormat.addInputPath(job, new Path(args[0]));
+//        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+//
+//        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        int res = ToolRunner.run(new Configuration(), new PartitionJoin(), args);
+        System.exit(res);
+    }
+
+    public int run(String[] args) throws Exception{
+        if(args.length != 2){
+            System.err.println("Usage: PartitionJoin <in> <out>");
+            System.exit(2);
+        }
+
+        Configuration conf = this.getConf();
         Job job = Job.getInstance(conf, "PartitionJoin");
         job.setJarByClass(PartitionJoin.class);
         job.setMapperClass(PartitionMapper.class);
@@ -297,6 +341,7 @@ public class PartitionJoin {
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        System.exit(job.waitForCompletion(true) ? 0 : 1);
+        //System.exit(job.waitForCompletion(true) ? 0 : 1);
+        return job.waitForCompletion(true) ? 0 : 1;
     }
 }
