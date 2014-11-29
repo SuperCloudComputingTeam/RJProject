@@ -98,14 +98,35 @@ public class PartitionJoin extends Configured implements Tool{
 
             HashMap<String, String> map = new HashMap<String, String>();
 
-            for(int i = 0; i <5; i++){
+            int s_size=sSize.get();
+            int t_size=tSize.get();
+            int c_S=0;
+            int c_T=0;
+
+            if(s_size==t_size){
+
+                c_S=s_size/2;
+                c_T=t_size/2;
+
+
+            }else {
+
+
+                double divisor=Math.sqrt(s_size*t_size/4.0);
+                c_S = (int)(s_size/divisor);
+                c_T=(int)(t_size/divisor);
+
+            }
+
+            int i=0;
+            for(; i <= c_S; i++){
                 String line = "S";
                 line = line+Integer.toString(i);
                 String reducers = "1 2";
                 map.put(line, reducers);
             }
 
-            for(int i = 5; i < 10; i++){
+            for(; i <= s_size; i++){
                 String line = "S";
                 line = line+Integer.toString(i);
                 String reducers = "3 4";
@@ -113,14 +134,15 @@ public class PartitionJoin extends Configured implements Tool{
             }
 
             //for T column
-            for(int i = 0; i <5; i++){
+            i=0;
+            for(; i <=c_T; i++){
                 String line = "T";
                 line = line+Integer.toString(i);
                 String reducers = "1 3";
                 map.put(line, reducers);
             }
 
-            for(int i = 5; i < 10; i++){
+            for(; i < t_size; i++){
                 String line = "T";
                 line = line+Integer.toString(i);
                 String reducers = "2 4";
