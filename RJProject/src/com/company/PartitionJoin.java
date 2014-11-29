@@ -14,12 +14,15 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.*;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.*;
 import org.apache.hadoop.util.hash.Hash;
 
@@ -33,8 +36,8 @@ public class PartitionJoin extends Configured implements Tool{
         private static MapWritable lookupTable = new MapWritable();
 
         //size information for S and T table
-        private IntWritable sSize;
-        private IntWritable tSize;
+        private IntWritable sSize = new IntWritable();
+        private IntWritable tSize = new IntWritable();
 
         //convert map to MapWritable
         private MapWritable toMapWritable(HashMap<String, String> map){
@@ -90,11 +93,23 @@ public class PartitionJoin extends Configured implements Tool{
 
         @Override
         protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException{
-            Configuration config = context.getConfiguration();
-            String[] tableSizes = config.get("table.size").split(" ");
+            String[] tableSizes = context.getConfiguration().get("tableSizes").split(" ");
 
-            sSize.set(Integer.parseInt(tableSizes[0]));
-            tSize.set(Integer.parseInt(tableSizes[1]));
+            if(tableSizes[0] == null){
+                System.out.println("NULL!");
+            }
+            else{
+                System.out.println(tableSizes[0]);
+                sSize.set(Integer.parseInt(tableSizes[0]));
+            }
+
+            if(tableSizes[1] == null){
+                System.out.println("NULL!");
+            }
+            else{
+                System.out.println(tableSizes[1]);
+                tSize.set(Integer.parseInt(tableSizes[1]));
+            }
 
             HashMap<String, String> map = new HashMap<String, String>();
 
@@ -187,12 +202,12 @@ public class PartitionJoin extends Configured implements Tool{
             //simulation of the randomized algorithm
             if(tag.contains("S")){
                 Random rand = new Random();
-                int randInt = rand.nextInt(sSize.get())+1;
+                int randInt = rand.nextInt(sSize.get());
                 tag = tag + Integer.toString(randInt);
             }
             else if(tag.contains("T")){
                 Random rand = new Random();
-                int randInt = rand.nextInt(tSize.get())+1;
+                int randInt = rand.nextInt(tSize.get());
                 tag = tag + Integer.toString(randInt);
             }
             //look up in the lookup table and retrieve the reducer list
@@ -214,16 +229,22 @@ public class PartitionJoin extends Configured implements Tool{
             //output.collect(new IntWritable(1), reducersArray );
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
-            for (String  reducerID : reducersArray) {
-                int j = Integer.parseInt(reducerID);
-                context.write(new IntWritable(j), record);
-                //test breaking point
-                //output.collect(new IntWritable(10), new Text("HelloWorld"));
+            if(reducersArray != null){
+                for (String  reducerID : reducersArray) {
+                    int j = Integer.parseInt(reducerID);
+                    context.write(new IntWritable(j), record);
+                    //test breaking point
+                    //output.collect(new IntWritable(10), new Text("HelloWorld"));
+                }
             }
+            else{
+                context.write(new IntWritable(50), record);
+            }
+
             //word.set(value);
 //            Text record = new Text();
 //            record.set(line);
-            //output.collect(new IntWritable(1), record);
+            //context.write(new IntWritable(1), tagKey);
         }
     }
 
@@ -245,6 +266,7 @@ public class PartitionJoin extends Configured implements Tool{
                 } else if(tag.contentEquals("T")) {
                     tableT.add(value);
                 }
+                //context.write(key, val);
             }
 
 //            //perform the join using your preference of join algorithm
@@ -263,8 +285,8 @@ public class PartitionJoin extends Configured implements Tool{
                    hm.get(keyValue).add(s.substring(i+1));
                 }
             }
-//
-//            //then iterate through the other table to produce the result
+////
+////            //then iterate through the other table to produce the result
             for (String t : tableT) {
                 //check to see if there's a match
                 int i = t.indexOf(" ");
@@ -307,6 +329,8 @@ public class PartitionJoin extends Configured implements Tool{
         //After switching to a new version of mapreduce, 2.3.0
         //below is the new codes for setting up the job configuration
 //        Configuration conf = new Configuration();
+//        conf.set("sSize", args[0]);
+//        conf.set("tSize", args[1]);
 //        Job job = Job.getInstance(conf, "PartitionJoin");
 //        job.setJarByClass(PartitionJoin.class);
 //        job.setMapperClass(PartitionMapper.class);
@@ -315,8 +339,9 @@ public class PartitionJoin extends Configured implements Tool{
 //        job.setOutputValueClass(Text.class);
 //        job.setNumReduceTasks(4);
 //
-//        FileInputFormat.addInputPath(job, new Path(args[0]));
-//        FileOutputFormat.setOutputPath(job, new Path(args[1]));
+//
+//        FileInputFormat.addInputPath(job, new Path(args[2]));
+//        FileOutputFormat.setOutputPath(job, new Path(args[3]));
 //
 //        System.exit(job.waitForCompletion(true) ? 0 : 1);
         int res = ToolRunner.run(new Configuration(), new PartitionJoin(), args);
@@ -324,22 +349,26 @@ public class PartitionJoin extends Configured implements Tool{
     }
 
     public int run(String[] args) throws Exception{
-        if(args.length != 2){
-            System.err.println("Usage: PartitionJoin <in> <out>");
-            System.exit(2);
-        }
 
         Configuration conf = this.getConf();
+
+        //Create job
+        //Job job = new Job(conf, "Partition Join");
         Job job = Job.getInstance(conf, "PartitionJoin");
         job.setJarByClass(PartitionJoin.class);
+
         job.setMapperClass(PartitionMapper.class);
         job.setReducerClass(PartitionReducer.class);
+
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
+
         job.setNumReduceTasks(4);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
+        job.setInputFormatClass(TextInputFormat.class);
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
+        job.setOutputFormatClass(TextOutputFormat.class);
 
         //System.exit(job.waitForCompletion(true) ? 0 : 1);
         return job.waitForCompletion(true) ? 0 : 1;
