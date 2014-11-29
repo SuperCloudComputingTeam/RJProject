@@ -165,6 +165,9 @@ public class PartitionJoin {
             Text record = new Text();
             String line = value.toString();
 
+            //randomization codes
+            //int i = line.indexOf(" ");
+
             //split up the string from the tag and the rest of the key and values
             int i = line.indexOf(" ");
             String tag = line.substring(0, i);

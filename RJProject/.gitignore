@@ -1,4 +1,4 @@
-*.xml
+workspace.xml
 RJProject/.idea
 *.class
 RJProject/out
