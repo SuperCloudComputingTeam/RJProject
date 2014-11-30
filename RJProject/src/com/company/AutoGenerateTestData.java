@@ -9,13 +9,15 @@ import java.util.Random;
  */
 public class AutoGenerateTestData {
     public static void main(String[] args)throws IOException{
-        PrintWriter writer = new PrintWriter("T.txt", "UTF-8");
+        PrintWriter writer = new PrintWriter("S.txt", "UTF-8");
 
         int sSize = Integer.parseInt(args[0]);
         int tSize = Integer.parseInt(args[1]);
 
-        for(int i = 0; i < tSize; i++){
-            String line = new String("T");
+        final int keyRange = 1000;
+
+        for(int i = 0; i < sSize; i++){
+            String line = new String("S");
 
             //Represent the lookup table index
             line = line + Integer.toString(i);
@@ -26,7 +28,7 @@ public class AutoGenerateTestData {
             //generating random number from 1 to 10000000
             //general formula = random(max-min+1)+min
             Random rand = new Random();
-            int randInt = rand.nextInt(10000000)+1;
+            int randInt = rand.nextInt(keyRange)+1;
             line = line + " " + Integer.toString(randInt);
 
             int randAge = rand.nextInt(16)+15;
@@ -36,10 +38,10 @@ public class AutoGenerateTestData {
         }
         writer.close();
 
-        writer = new PrintWriter("S.txt", "UTF-8");
+        writer = new PrintWriter("T.txt", "UTF-8");
 
-        for(int i = 0; i < sSize; i++){
-            String line = new String("S");
+        for(int i = 0; i < tSize; i++){
+            String line = new String("T");
 
             //Represent the lookup table index
             line = line + Integer.toString(i);
@@ -50,7 +52,7 @@ public class AutoGenerateTestData {
             //generating random number from 0 to 100
             //general formula = random(max-min+1)+min
             Random rand = new Random();
-            int randInt = rand.nextInt(10000000)+1;
+            int randInt = rand.nextInt(keyRange)+1;
             line = line + " " + Integer.toString(randInt);
 
             int randAge = rand.nextInt(16)+15;
