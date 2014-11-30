@@ -101,6 +101,7 @@ public class PartitionJoin extends Configured implements Tool{
         protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException{
             String[] tableSizes = context.getConfiguration().get("tableSizes").split(" ");
 
+
             if(tableSizes[0] == null){
                 System.out.println("NULL!");
             }
@@ -120,12 +121,15 @@ public class PartitionJoin extends Configured implements Tool{
             int s_size=sSize.get();
             int t_size=tSize.get();
 
+            int c_S=0;
+            int c_T=0;
+
+            //********************************** paper implementation of partitioning *****************
+
             //get the square length
             double squareLength = Math.sqrt(s_size*t_size/4);
             int s_squareLength=0;
             int t_squareLength=0;
-            int c_S = 0;
-            int c_T = 0;
 
             if(s_size==t_size){
                 //for 4 reducers
@@ -175,6 +179,95 @@ public class PartitionJoin extends Configured implements Tool{
 //            }
             rangeSecond_T = Integer.toString(t_size) + " 2,4";
 
+            //************************************horizontal partitioning******************************************
+
+            /*
+            c_S=s_size/4;
+            for(;i<c_S;i++){
+                String line = "S";
+                line = line+Integer.toString(i);
+                String reducers = "1";
+                map.put(line, reducers);
+            }
+            int temp = c_S*2;
+
+            for(;i< temp ;i++){
+                String line = "S";
+                line = line+Integer.toString(i);
+                String reducers = "2";
+                map.put(line, reducers);
+            }
+
+            temp=c_S*3;
+            for(;i< temp ;i++){
+                String line = "S";
+                line = line+Integer.toString(i);
+                String reducers = "3";
+                map.put(line, reducers);
+            }
+
+            for(;i< s_size ;i++){
+                String line = "S";
+                line = line+Integer.toString(i);
+                String reducers = "4";
+                map.put(line, reducers);
+            }
+
+
+            i=0;
+            for(; i < t_size; i++){
+                String line = "T";
+                line = line+Integer.toString(i);
+                String reducers = "1 2 3 4";
+                map.put(line, reducers);
+            }
+
+            */
+
+
+            // **********************************vertical partitioning*********************************************
+
+
+//            i=0;
+//            for(; i < s_size; i++){
+//                String line = "S";
+//                line = line+Integer.toString(i);
+//                String reducers = "1 2 3 4";
+//                map.put(line, reducers);
+//            }
+//
+//            i=0;
+//            c_T=t_size/4;
+//            for(;i<c_T;i++){
+//                String line = "T";
+//                line = line+Integer.toString(i);
+//                String reducers = "1";
+//                map.put(line, reducers);
+//            }
+//            int temp = c_T*2;
+//
+//            for(;i< temp ;i++){
+//                String line = "T";
+//                line = line+Integer.toString(i);
+//                String reducers = "2";
+//                map.put(line, reducers);
+//            }
+//
+//            temp=c_T*3;
+//            for(;i< temp ;i++){
+//                String line = "T";
+//                line = line+Integer.toString(i);
+//                String reducers = "3";
+//                map.put(line, reducers);
+//            }
+//
+//            for(;i< t_size ;i++){
+//                String line = "S";
+//                line = line+Integer.toString(i);
+//                String reducers = "4";
+//                map.put(line, reducers);
+//            }
+
             //populate the mapWritable
             //lookupTable = toMapWritable(map);
         }
@@ -219,6 +312,9 @@ public class PartitionJoin extends Configured implements Tool{
 //                reducers.add(3);
 //                lookupTable.put(line, reducers);
 //            }
+
+
+
 
             Text record = new Text();
             String line = value.toString();
