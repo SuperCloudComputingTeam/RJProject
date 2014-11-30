@@ -33,22 +33,28 @@ public class PartitionJoin extends Configured implements Tool{
     public static class PartitionMapper extends Mapper<Object, Text, IntWritable, Text> {
         //initiate a look up table accessible for all
         //private org.apache.hadoop.io.MapWritable<Text, IntArrayWritable> lookupTableTwo = new MapWritable(Text, IntArrayWritable);
-        private static MapWritable lookupTable = new MapWritable();
+        //private static HashMap<String, String> lookupTable = new HashMap<String, String>();
 
         //size information for S and T table
         private IntWritable sSize = new IntWritable();
         private IntWritable tSize = new IntWritable();
 
+        //Four Optimization Variables
+        private String rangeFirst_S = ""; //range value is inclusion => use <= for comparison
+        private String rangeSecond_S = "";
+        private String rangeFirst_T = "";
+        private String rangeSecond_T = "";
+
         //convert map to MapWritable
-        private MapWritable toMapWritable(HashMap<String, String> map){
-            MapWritable result = new MapWritable();
-            if(map != null){
-                for(Map.Entry<String, String> entry : map.entrySet()){
-                    result.put(new Text(entry.getKey()), new Text(entry.getValue()));
-                }
-            }
-            return result;
-        }
+//        private MapWritable toMapWritable(HashMap<String, String> map){
+//            MapWritable result = new MapWritable();
+//            if(map != null){
+//                for(Map.Entry<String, String> entry : map.entrySet()){
+//                    result.put(new Text(entry.getKey()), new Text(entry.getValue()));
+//                }
+//            }
+//            return result;
+//        }
 
         //private HashMap<String, ArrayList<Integer>> lookupTable = new HashMap<String, ArrayList<Integer>>();
 
@@ -99,7 +105,6 @@ public class PartitionJoin extends Configured implements Tool{
                 System.out.println("NULL!");
             }
             else{
-                System.out.println(tableSizes[0]);
                 sSize.set(Integer.parseInt(tableSizes[0]));
             }
 
@@ -107,65 +112,71 @@ public class PartitionJoin extends Configured implements Tool{
                 System.out.println("NULL!");
             }
             else{
-                System.out.println(tableSizes[1]);
                 tSize.set(Integer.parseInt(tableSizes[1]));
             }
 
-            HashMap<String, String> map = new HashMap<String, String>();
+            //HashMap<String, String> map = new HashMap<String, String>();
 
             int s_size=sSize.get();
             int t_size=tSize.get();
-            int c_S=0;
-            int c_T=0;
+
+            //get the square length
+            double squareLength = Math.sqrt(s_size*t_size/4);
+            int s_squareLength=0;
+            int t_squareLength=0;
+            int c_S = 0;
+            int c_T = 0;
 
             if(s_size==t_size){
-
-                c_S=s_size/2;
-                c_T=t_size/2;
-
-
+                //for 4 reducers
+                s_squareLength=s_size/2;
+                t_squareLength=t_size/2;
             }else {
-
-
                 double divisor=Math.sqrt(s_size*t_size/4.0);
+                //for 4 reducers, always divided by 2
+                s_squareLength = s_size/2;
+                t_squareLength = t_size/2;
                 c_S = (int)(s_size/divisor);
                 c_T=(int)(t_size/divisor);
-
             }
 
-            int i=0;
-            for(; i <= c_S; i++){
-                String line = "S";
-                line = line+Integer.toString(i);
-                String reducers = "1 2";
-                map.put(line, reducers);
-            }
+            int i = 0;
+//            for(; i < s_squareLength; i++){
+//                String line = "S";
+//                line = line+Integer.toString(i);
+//                String reducers = "1 2";
+//                lookupTable.put(line, reducers);
+//            }
+            rangeFirst_S = Integer.toString(s_squareLength) + " 1,2";
 
-            for(; i <= s_size; i++){
-                String line = "S";
-                line = line+Integer.toString(i);
-                String reducers = "3 4";
-                map.put(line, reducers);
-            }
+//            for(; i < s_size; i++){
+//                String line = "S";
+//                line = line+Integer.toString(i);
+//                String reducers = "3 4";
+//                lookupTable.put(line, reducers);
+//            }
+            rangeFirst_S = Integer.toString(s_size) + " 3,4";
 
             //for T column
             i=0;
-            for(; i <=c_T; i++){
-                String line = "T";
-                line = line+Integer.toString(i);
-                String reducers = "1 3";
-                map.put(line, reducers);
-            }
+//            for(; i < t_squareLength; i++){
+//                String line = "T";
+//                line = line+Integer.toString(i);
+//                String reducers = "1 3";
+//                lookupTable.put(line, reducers);
+//            }
+            rangeFirst_T = Integer.toString(t_squareLength) + " 1,3";
 
-            for(; i < t_size; i++){
-                String line = "T";
-                line = line+Integer.toString(i);
-                String reducers = "2 4";
-                map.put(line, reducers);
-            }
+//            for(; i < t_size; i++){
+//                String line = "T";
+//                line = line+Integer.toString(i);
+//                String reducers = "2 4";
+//                lookupTable.put(line, reducers);
+//            }
+            rangeSecond_T = Integer.toString(t_size) + " 2,4";
 
             //populate the mapWritable
-            lookupTable = toMapWritable(map);
+            //lookupTable = toMapWritable(map);
         }
 
         //map function that assigns each record to the assigned reducers based on the lookup table
@@ -221,30 +232,56 @@ public class PartitionJoin extends Configured implements Tool{
             //line = (line.substring(i+1));
             record.set(line);
 
+            String[] reducersArray = null;
+
             //simulation of the randomized algorithm
             if(tag.contains("S")){
                 Random rand = new Random();
                 int randInt = rand.nextInt(sSize.get());
                 tag = tag + Integer.toString(randInt);
+
+                //check to see the range falls into the first range or the second range
+                if(randInt < Integer.parseInt(rangeFirst_S.substring(0,rangeFirst_S.indexOf(" ")))){
+                    //falls into the first range
+                    reducersArray = rangeFirst_S.substring(rangeFirst_S.indexOf(" ")+1).split(",");
+                }
+                else{
+                    reducersArray = rangeSecond_S.substring(rangeSecond_S.indexOf(" ")+1).split(",");
+                }
             }
             else if(tag.contains("T")){
                 Random rand = new Random();
                 int randInt = rand.nextInt(tSize.get());
                 tag = tag + Integer.toString(randInt);
+
+                //check to see the range falls into the first range or the second range
+                if(randInt < Integer.parseInt(rangeFirst_T.substring(0,rangeFirst_T.indexOf(" ")))){
+                    //falls into the first range
+                    reducersArray = rangeFirst_T.substring(rangeFirst_T.indexOf(" ")+1).split(",");
+                }
+                else{
+                    reducersArray = rangeSecond_T.substring(rangeSecond_T.indexOf(" ")+1).split(",");
+                }
             }
             //look up in the lookup table and retrieve the reducer list
 //            String tagKey = tag.toString();
-            Text tagKey = new Text();
-            tagKey.set(tag);
+//            Text tagKey = new Text();
+//            tagKey.set(tag);
 
-            String[] reducersArray = null;
+//            if(lookupTable.containsKey(tagKey)){
+//                reducersArray = ((Text)lookupTable.get(tagKey)).toString().split(" ");
+//            }
+//            else{
+//                //do nothing
+//            }
+//            if(lookupTable.containsKey(tag)){
+//                reducersArray = lookupTable.get(tag).split(" ");
+//            }
+//            else{
+//                //do nothing
+//                context.write(new IntWritable(50), new Text("lookupTable does not contains key"));
+//            }
 
-            if(lookupTable.containsKey(tagKey)){
-                reducersArray = ((Text)lookupTable.get(tagKey)).toString().split(" ");
-            }
-            else{
-                //do nothing
-            }
 
 
 
@@ -254,12 +291,13 @@ public class PartitionJoin extends Configured implements Tool{
             if(reducersArray != null){
                 for (String  reducerID : reducersArray) {
                     int j = Integer.parseInt(reducerID);
-                    context.write(new IntWritable(j), record);
+                    context.write(new IntWritable(j), record );
                     //test breaking point
                     //output.collect(new IntWritable(10), new Text("HelloWorld"));
                 }
             }
             else{
+                //set the int writable to 50 such that if the reducersArray is empty, then we can trace back from the logs
                 context.write(new IntWritable(50), record);
             }
 
@@ -275,8 +313,8 @@ public class PartitionJoin extends Configured implements Tool{
             //two tables initialization to perform the joining
             ArrayList<String> tableS = new ArrayList<String>();
             ArrayList<String> tableT = new ArrayList<String>();
-
-            //group the records in the iterator into table S and table T
+//
+//            //group the records in the iterator into table S and table T
             for(Text val : values){
                 String record = val.toString();
                 int i = record.indexOf(" ");
@@ -288,11 +326,11 @@ public class PartitionJoin extends Configured implements Tool{
                 } else if(tag.contentEquals("T")) {
                     tableT.add(value);
                 }
-                //context.write(key, val);
+                //context.write(new IntWritable(100), val);
             }
-
-//            //perform the join using your preference of join algorithm
-//            //pick either one table and hash it
+//
+////            //perform the join using your preference of join algorithm
+////            //pick either one table and hash it
             HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
             for (String s : tableS){
                 int i = s.indexOf(" ");
@@ -307,8 +345,8 @@ public class PartitionJoin extends Configured implements Tool{
                    hm.get(keyValue).add(s.substring(i+1));
                 }
             }
-////
-////            //then iterate through the other table to produce the result
+//////
+//////            //then iterate through the other table to produce the result
             for (String t : tableT) {
                 //check to see if there's a match
                 int i = t.indexOf(" ");
