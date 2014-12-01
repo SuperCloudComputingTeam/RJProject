@@ -334,14 +334,19 @@ public class PartitionJoin extends Configured implements Tool{
                 String value = record.substring(i+1);
 
                 if (tag.contentEquals("S")) {
+                    //get the key-value information
+                    int j = value.indexOf(" ");
+                    String tagKey = value.substring(0,j);
+                    String mapValue = value.substring(j+1);
+
                     //if the key doesn't exist
-                    if (!hm.containsKey(tag)) {
+                    if (!hm.containsKey(tagKey)) {
                         ArrayList<String> list = new ArrayList<String>();
-                        list.add(value);
-                        hm.put(tag, list);
+                        list.add(mapValue);
+                        hm.put(tagKey, list);
                     } else {
                         //same key exists, then add it to the array list
-                        hm.get(tag).add(value);
+                        hm.get(tagKey).add(mapValue);
                     }
                 } else if(tag.contentEquals("T")) {
                     tableT.add(value);
