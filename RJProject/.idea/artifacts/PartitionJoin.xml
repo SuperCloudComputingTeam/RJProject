@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" build-on-make="true" name="PartitionJoin">
-    <output-path>$PROJECT_DIR$/out/artifacts/PartitionJoin</output-path>
+    <output-path>$PROJECT_DIR$/out/</output-path>
     <root id="archive" name="PartitionJoin.jar">
       <element id="module-output" name="ReducerJoin" />
     </root>

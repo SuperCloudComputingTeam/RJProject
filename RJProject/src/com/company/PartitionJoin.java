@@ -392,6 +392,11 @@ public class PartitionJoin extends Configured implements Tool{
     }
 
     public int run(String[] args) throws Exception{
+
+        System.out.println("Starting mapreduce parogram.......");
+
+        long time = System.currentTimeMillis();
+
         Configuration conf = this.getConf();
 
         //Create job
@@ -410,7 +415,12 @@ public class PartitionJoin extends Configured implements Tool{
         job.setInputFormatClass(TextInputFormat.class);
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
         job.setOutputFormatClass(TextOutputFormat.class);
+        boolean result = job.waitForCompletion(true);
 
-        return job.waitForCompletion(true) ? 0 : 1;
+        System.out.println("Total execution time:"+(System.currentTimeMillis()-time));
+
+        return result ? 0 : 1;
+
+        //return job.waitForCompletion(true) ? 0 : 1;
     }
 }
