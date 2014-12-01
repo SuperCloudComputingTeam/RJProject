@@ -318,7 +318,12 @@ public class PartitionJoin extends Configured implements Tool{
     public static class PartitionReducer extends Reducer<IntWritable, Text, IntWritable, Text> {
         public void reduce(IntWritable key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
             //two tables initialization to perform the joining
-            ArrayList<String> tableS = new ArrayList<String>();
+
+            //perform the join using your preference of join algorithm
+            //pick either one table and hash it
+            HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
+
+            //ArrayList<String> tableS = new ArrayList<String>(); Trying to reduce memory
             ArrayList<String> tableT = new ArrayList<String>();
 
             //group the records in the iterator into table S and table T
@@ -329,29 +334,33 @@ public class PartitionJoin extends Configured implements Tool{
                 String value = record.substring(i+1);
 
                 if (tag.contentEquals("S")) {
-                    tableS.add(value);
+                    //if the key doesn't exist
+                    if (!hm.containsKey(tag)) {
+                        ArrayList<String> list = new ArrayList<String>();
+                        list.add(value);
+                        hm.put(tag, list);
+                    } else {
+                        //same key exists, then add it to the array list
+                        hm.get(tag).add(value);
+                    }
                 } else if(tag.contentEquals("T")) {
                     tableT.add(value);
                 }
             }
 
-            //perform the join using your preference of join algorithm
-            //pick either one table and hash it
-            HashMap<String, ArrayList<String>> hm = new HashMap<String, ArrayList<String>>();
-
-            for (String s : tableS){
-                int i = s.indexOf(" ");
-                String keyValue = s.substring(0, i);
-                //if the key doesn't exist
-                if (!hm.containsKey(keyValue)) {
-                    ArrayList<String> list = new ArrayList<String>();
-                    list.add(s.substring(i+1));
-                    hm.put(keyValue, list);
-                } else {
-                    //same key exists, then add it to the array list
-                   hm.get(keyValue).add(s.substring(i+1));
-                }
-            }
+//            for (String s : tableS){
+//                int i = s.indexOf(" ");
+//                String keyValue = s.substring(0, i);
+//                //if the key doesn't exist
+//                if (!hm.containsKey(keyValue)) {
+//                    ArrayList<String> list = new ArrayList<String>();
+//                    list.add(s.substring(i+1));
+//                    hm.put(keyValue, list);
+//                } else {
+//                    //same key exists, then add it to the array list
+//                   hm.get(keyValue).add(s.substring(i+1));
+//                }
+//            }
 
             //then iterate through the other table to produce the result
             for (String t : tableT) {
