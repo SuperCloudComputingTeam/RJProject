@@ -3,11 +3,7 @@ package com.company;
 /**
  * Created by San on 11/10/2014.
  */
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.util.*;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -159,7 +155,7 @@ public class PartitionJoin extends Configured implements Tool{
 //                String reducers = "3 4";
 //                lookupTable.put(line, reducers);
 //            }
-            rangeFirst_S = Integer.toString(s_size) + " 3,4";
+            rangeSecond_S = Integer.toString(s_size) + " 3,4";
 
             //for T column
             i=0;
@@ -345,7 +341,7 @@ public class PartitionJoin extends Configured implements Tool{
                     reducersArray = rangeSecond_S.substring(rangeSecond_S.indexOf(" ")+1).split(",");
                 }
             }
-            else if(tag.contains("T")){
+            else{
                 Random rand = new Random();
                 int randInt = rand.nextInt(tSize.get());
                 tag = tag + Integer.toString(randInt);
@@ -380,8 +376,10 @@ public class PartitionJoin extends Configured implements Tool{
 
 
 
+            //String range = rangeFirst_S + " " + rangeSecond_S + " " + rangeFirst_T + " " + rangeSecond_T;
+            //record.set(range);
+            //context.write(new IntWritable(1), record);
 
-            //output.collect(new IntWritable(1), reducersArray );
             //loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
             if(reducersArray != null){
@@ -422,7 +420,7 @@ public class PartitionJoin extends Configured implements Tool{
                 } else if(tag.contentEquals("T")) {
                     tableT.add(value);
                 }
-                //context.write(new IntWritable(100), val);
+               // context.write(key, val);
             }
 //
 ////            //perform the join using your preference of join algorithm
