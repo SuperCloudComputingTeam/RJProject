@@ -8,7 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e43b6746-18c9-486c-9a7e-e7324ed69a20" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/com/company/PartitionJoin.java" afterPath="$PROJECT_DIR$/src/com/company/PartitionJoin.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="RJProject.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -34,8 +34,8 @@
       <file leaf-file-name="PartitionJoin.java" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/com/company/PartitionJoin.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="7.1134453" vertical-offset="1146" max-vertical-offset="7425">
-              <caret line="428" column="26" selection-start-line="428" selection-start-column="20" selection-end-line="428" selection-end-column="26" />
+            <state vertical-scroll-proportion="0.3487395" vertical-offset="1521" max-vertical-offset="7425">
+              <caret line="131" column="66" selection-start-line="131" selection-start-column="66" selection-end-line="131" selection-end-column="66" />
               <folding>
                 <element signature="e#14976#15003#0" expanded="true" />
                 <element signature="e#15150#15158#0" expanded="true" />
@@ -305,8 +305,8 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/com/company/PartitionJoin.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="7.1134453" vertical-offset="1146" max-vertical-offset="7425">
-          <caret line="428" column="26" selection-start-line="428" selection-start-column="20" selection-end-line="428" selection-end-column="26" />
+        <state vertical-scroll-proportion="0.3487395" vertical-offset="1521" max-vertical-offset="7425">
+          <caret line="131" column="66" selection-start-line="131" selection-start-column="66" selection-end-line="131" selection-end-column="66" />
           <folding>
             <element signature="e#14976#15003#0" expanded="true" />
             <element signature="e#15150#15158#0" expanded="true" />
