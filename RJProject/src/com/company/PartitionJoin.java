@@ -26,15 +26,23 @@ public class PartitionJoin extends Configured implements Tool{
         //private static HashMap<String, String> lookupTable = new HashMap<String, String>();
 
         //size information for S and T table
+
+
         private IntWritable sSize = new IntWritable();
         private IntWritable tSize = new IntWritable();
+        private boolean isHorizontal=false;
+        private boolean isVertical=false;
+
+        private int limit1=0;
+        private int limit2=0;
+        private int limit3=0;
 
         //Four Optimization Variables
         //Specific for 4 reducers Case
-        private String rangeFirst_S = "";
-        private String rangeSecond_S = "";
-        private String rangeFirst_T = "";
-        private String rangeSecond_T = "";
+        private static String rangeFirst_S[] = {"1","2"};
+        private static String rangeSecond_S[] = {"3","4"};
+        private static String rangeFirst_T[] = {"1","3"};
+        private static String rangeSecond_T[] = {"2","4"};
 
         //Can be used if needs to pass HashMap-like object among map-reduce tasks
         //convert map to MapWritable
@@ -85,28 +93,48 @@ public class PartitionJoin extends Configured implements Tool{
             //********************************** paper implementation of partitioning *****************
 
             //get the square length
-            int s_squareLength;
-            int t_squareLength;
+            int s_squareLength=0;
+            int t_squareLength=0;
 
             if(s_size==t_size){
                 //for 4 reducers
-                s_squareLength=s_size/2;
-                t_squareLength=t_size/2;
+                //s_squareLength=s_size/2;
+                //t_squareLength=t_size/2;
+                limit1=s_size/2;
+                limit2=t_size/2;
+
+            }else if( s_size<= t_size/4.0){
+                isVertical=true;
+                int temp = (int) (t_size/4.0);
+                limit1=temp;
+                limit2=temp*2;
+                limit3=temp*3;
+
+            }else if (t_size<=s_size/4.0){
+                isHorizontal=true;
+                int temp = (int) (s_size/4.0);
+                limit1=temp;
+                limit2=temp*2;
+                limit3=temp*3;
             }else {
-                double divisor=Math.sqrt(s_size*t_size/4.0);
-                //for 4 reducers, always divided by 2
-                s_squareLength = s_size/2;
-                t_squareLength = t_size/2;
-                c_S = (int)(s_size/divisor);
-                c_T=(int)(t_size/divisor);
+//                double divisor=Math.sqrt(s_size*t_size/4.0);
+//                //for 4 reducers, always divided by 2
+//                s_squareLength = s_size/2;
+//                t_squareLength = t_size/2;
+//                c_S = (int)(s_size/divisor);
+//                c_T=(int)(t_size/divisor);
+
+                limit1 = s_size/2;
+                limit2 = t_size/2;
+
             }
 
             //This is the Optimization Step where we avoid the use of HashTable and just use variables to represent
             //the range of each partition
-            rangeFirst_S = Integer.toString(s_squareLength) + " 1,2";
-            rangeSecond_S = Integer.toString(s_size) + " 3,4";
-            rangeFirst_T = Integer.toString(t_squareLength) + " 1,3";
-            rangeSecond_T = Integer.toString(t_size) + " 2,4";
+//            rangeFirst_S = Integer.toString(s_squareLength) + " 1,2";
+//            rangeSecond_S = Integer.toString(s_size) + " 3,4";
+//            rangeFirst_T = Integer.toString(t_squareLength) + " 1,3";
+//            rangeSecond_T = Integer.toString(t_size) + " 2,4";
 
             //The below portion is for using HashMap to represent the lookupTable
             //De-comment when need to use it for performing testing and comparison
@@ -237,6 +265,13 @@ public class PartitionJoin extends Configured implements Tool{
 
         //The Map function will based on the partitioning schema to assign each tuple to destined reducers to reach
         //balance workload and reduce data skew
+        private static String all_reducers[]={"1","2","3","4"};
+        private static String reducer_one[]={"1"};
+        private static String reducer_two[]={"2"};
+        private static String reducer_three[]={"3"};
+        private static String reducer_four[]={"4"};
+
+
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             Text record = new Text();
             String line = value.toString();
@@ -253,28 +288,70 @@ public class PartitionJoin extends Configured implements Tool{
                 int randInt = rand.nextInt(sSize.get()); //generate a random number from 0 to the size of S
                 //tag = tag + Integer.toString(randInt);
 
+                if(isHorizontal){
+
+                    if (randInt<limit1){
+                        reducersArray=reducer_one;
+                    }else if (randInt<limit2){
+                        reducersArray=reducer_two;
+
+                    }else if (randInt<limit3){
+                        reducersArray=reducer_three;
+                    }else{
+                        reducersArray=reducer_four;
+                    }
+
+                }else if (isVertical){
+                        reducersArray=all_reducers;
+                }
                 //check to see the range falls into the first range or the second range
-                if(randInt < Integer.parseInt(rangeFirst_S.substring(0,rangeFirst_S.indexOf(" ")))){
-                    //falls into the first range
-                    reducersArray = rangeFirst_S.substring(rangeFirst_S.indexOf(" ")+1).split(",");
+                else if(randInt<limit1){
+                   reducersArray=rangeFirst_S;
+                }else{
+                    reducersArray=rangeSecond_S;
+
                 }
-                else{
-                    reducersArray = rangeSecond_S.substring(rangeSecond_S.indexOf(" ")+1).split(",");
-                }
+
+//                else if(randInt < Integer.parseInt(rangeFirst_S.substring(0,rangeFirst_S.indexOf(" ")))){
+//                    //falls into the first range
+//                    reducersArray = rangeFirst_S.substring(rangeFirst_S.indexOf(" ")+1).split(",");
+//                }
+//                else{
+//                    reducersArray = rangeSecond_S.substring(rangeSecond_S.indexOf(" ")+1).split(",");
+//                }
             }
             else{
                 Random rand = new Random();
                 int randInt = rand.nextInt(tSize.get());
                 //tag = tag + Integer.toString(randInt);
+                if(isVertical){
 
+                    if (randInt<limit1){
+                        reducersArray=reducer_one;
+                    }else if (randInt<limit2){
+                        reducersArray=reducer_two;
+
+                    }else if (randInt<limit3){
+                        reducersArray=reducer_three;
+                    }else{
+                        reducersArray=reducer_four;
+                    }
+
+                }else if (isHorizontal){
+                    reducersArray=all_reducers;
+                }else if (randInt<limit2){
+                    reducersArray=rangeFirst_T;
+                }else {
+                    reducersArray=rangeSecond_T;
+                }
                 //check to see the range falls into the first range or the second range
-                if(randInt < Integer.parseInt(rangeFirst_T.substring(0,rangeFirst_T.indexOf(" ")))){
-                    //falls into the first range
-                    reducersArray = rangeFirst_T.substring(rangeFirst_T.indexOf(" ")+1).split(",");
-                }
-                else{
-                    reducersArray = rangeSecond_T.substring(rangeSecond_T.indexOf(" ")+1).split(",");
-                }
+//                else if(randInt < Integer.parseInt(rangeFirst_T.substring(0,rangeFirst_T.indexOf(" ")))){
+//                    //falls into the first range
+//                    reducersArray = rangeFirst_T.substring(rangeFirst_T.indexOf(" ")+1).split(",");
+//                }
+//                else{
+//                    reducersArray = rangeSecond_T.substring(rangeSecond_T.indexOf(" ")+1).split(",");
+//                }
             }
 
             //------------------This portion of codes use the lookupTable-----//
