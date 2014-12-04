@@ -44,6 +44,14 @@ public class PartitionJoin extends Configured implements Tool{
         private static String rangeFirst_T[] = {"1","3"};
         private static String rangeSecond_T[] = {"2","4"};
 
+        //The Map function will based on the partitioning schema to assign each tuple to destined reducers to reach
+        //balance workload and reduce data skew
+        private static String all_reducers[]={"1","2","3","4"};
+        private static String reducer_one[]={"1"};
+        private static String reducer_two[]={"2"};
+        private static String reducer_three[]={"3"};
+        private static String reducer_four[]={"4"};
+
         //Can be used if needs to pass HashMap-like object among map-reduce tasks
         //convert map to MapWritable
 //        private MapWritable toMapWritable(HashMap<String, String> map){
@@ -263,14 +271,50 @@ public class PartitionJoin extends Configured implements Tool{
             //lookupTable = toMapWritable(map);
         }
 
-        //The Map function will based on the partitioning schema to assign each tuple to destined reducers to reach
-        //balance workload and reduce data skew
-        private static String all_reducers[]={"1","2","3","4"};
-        private static String reducer_one[]={"1"};
-        private static String reducer_two[]={"2"};
-        private static String reducer_three[]={"3"};
-        private static String reducer_four[]={"4"};
+        //A test function for the attempting implementation
+        private void test(){
+            //The code below is pulled from my testing project. So change accordingly.
+            int numReduers = Integer.parseInt(args[0]);
+            int sSize = Integer.parseInt(args[1]);
+            int tSize = Integer.parseInt(args[2]);
 
+            double idealSquareLength = Math.sqrt(((double)sSize*tSize)/numReduers);
+
+            //calculate the Cs and Ct
+            float sCoefficient = (float)(sSize/idealSquareLength);
+            float tCoefficient = (float)(tSize/idealSquareLength);
+
+            //This is for storing all of the regions as a result from the parititoning
+            ArrayList<Region> reducersRegion = new ArrayList<Region>();
+
+            //Begin checking for cases
+            //First check if it is the ideal where both Cs and Ct are integer
+            if(sCoefficient%1 == 0 && tCoefficient%1 == 0){
+                System.out.println("Both Cs and Ct are integer multipliers");
+            }
+            else{
+                //Then it belongs to case 2
+                //In case 2, first check to see if the extreme case applied
+                //Extreme case condition: |S| < the ideal suquare length (this implies that the side length of the optimal
+                //  suare that matches the lower bounds is "taller" than the join matrix. Hence the lower bounds are not
+                //  tight, because no partition of the matrix can have more than |S| tuples from input set S.
+                //The optimal partitioning of the matrix into r regions would then consists of rectangles of size |S| by
+                //  |T|/r. Vice Versa, |T| by |S|/r.
+                if(sSize < idealSquareLength){
+                    //Partition into |S| by |T|/r
+                    //For row, only one region
+                    ArrayList<Integer> rowReducersID = new ArrayList<Integer>();
+                    for(int i = 1; i <= numReduers; i++){
+                        rowReducersID.add(i);
+                    }
+                    Region rowRegion = new Region(new Range(0, sSize), "S", rowReducersID);
+                }
+                else if (tSize < idealSquareLength){
+                    //Partition into |T| by |S|/r
+                }
+            }
+            System.out.println("Done");
+        }
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             Text record = new Text();
