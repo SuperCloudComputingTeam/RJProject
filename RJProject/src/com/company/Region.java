@@ -10,6 +10,7 @@ public class Region {
     Range range;
     String origin;
     ArrayList<Integer> reducersID;
+    int ID;
 
     public Region(){
         range = new Range();
@@ -21,5 +22,10 @@ public class Region {
         range = r;
         origin = s;
         reducersID = list;
+    }
+    public Region(Range r, String s,int id){
+        range = r;
+        origin = s;
+        ID = id;
     }
 }

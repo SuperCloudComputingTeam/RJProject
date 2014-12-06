@@ -272,13 +272,17 @@ public class PartitionJoin extends Configured implements Tool{
         }
 
         //A test function for the attempting implementation
-        private void test(){
+        /*
+        private void test()
+        {
             //The code below is pulled from my testing project. So change accordingly.
+            //Assume |S|<|T|
             int numReduers = Integer.parseInt(args[0]);
             int sSize = Integer.parseInt(args[1]);
             int tSize = Integer.parseInt(args[2]);
 
             double idealSquareLength = Math.sqrt(((double)sSize*tSize)/numReduers);
+            double SquareArea = ((double)sSize*tSize)/numReduers;
 
             //calculate the Cs and Ct
             float sCoefficient = (float)(sSize/idealSquareLength);
@@ -288,7 +292,51 @@ public class PartitionJoin extends Configured implements Tool{
             ArrayList<Region> reducersRegion = new ArrayList<Region>();
 
             //Begin checking for cases
-            //First check if it is the ideal where both Cs and Ct are integer
+            //three cases: ideal case, extreme case, general case
+            //Ideal case: idealSquareLength and SquareArea should be integers. Also |S| and |T| are multiples of idealSquareLength
+            if (Math.floor(idealSquareLength)==idealSquareLength && sCoefficient%1 == 0 && tCoefficient%1 == 0)
+             {
+                //Ideal Case
+
+             }
+            else if (sSize<tSize/numReduers)
+            {
+                //Extreme case
+                // get the range increment and round it. DO NOT USE FLOOR OR CEILING
+                int rangeIncrement=Math.round((float)(tSize/numReduers));
+                // divide into two cases.
+                if (rangeIncrement*numReduers>sSize*tSize)
+                {
+                    //partition S into one row
+                    ArrayList<Integer> rowReducersID = new ArrayList<Integer>();
+                    for(int i = 1; i <= numReduers; i++){
+                        rowReducersID.add(i);
+                    }
+                    Region rowRegion = new Region(new Range(0, sSize), "S", rowReducersID);
+
+                    //partition T into |T|/r
+                    // assign range, what table it belong to and reducer Id to each region
+                    ArrayList<Region> Regions =new ArrayList<Region>();
+                    for (int i=1; i<=numReduers-1;i++)
+                    {
+                        Region temp = new Region(new Range((i-1)*rangeIncrement,i*rangeIncrement), "T", i);
+                        Regions.add(temp);
+                    }
+                    Region temp1=new Region(new Range((numReduers-1)*rangeIncrement,tSize),"T",numReduers);
+                    Regions.add(temp1);
+                }
+                else
+                {
+
+                }
+
+            }
+            else
+            {
+                //General case
+            }
+
+
             if(sCoefficient%1 == 0 && tCoefficient%1 == 0){
                 System.out.println("Both Cs and Ct are integer multipliers");
             }
@@ -314,8 +362,9 @@ public class PartitionJoin extends Configured implements Tool{
                 }
             }
             System.out.println("Done");
-        }
 
+        }
+         */
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             Text record = new Text();
             String line = value.toString();
