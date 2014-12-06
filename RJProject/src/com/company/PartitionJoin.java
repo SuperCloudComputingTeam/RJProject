@@ -52,6 +52,16 @@ public class PartitionJoin extends Configured implements Tool{
         private static String reducer_three[]={"3"};
         private static String reducer_four[]={"4"};
 
+
+        ///// trying to implement the generic version
+
+        private int total_number_of_reducers;
+        public static ArrayDeque<Range> S_range_list;
+        public static ArrayList<Range> T_range_list;
+
+
+
+
         //Can be used if needs to pass HashMap-like object among map-reduce tasks
         //convert map to MapWritable
 //        private MapWritable toMapWritable(HashMap<String, String> map){
@@ -76,6 +86,9 @@ public class PartitionJoin extends Configured implements Tool{
         protected void setup(org.apache.hadoop.mapreduce.Mapper.Context context) throws IOException, InterruptedException{
             //Retrieving the relation sizes information from the user command line input
             String[] tableSizes = context.getConfiguration().get("tableSizes").split(" ");
+
+
+            total_number_of_reducers=context.getNumReduceTasks();
 
             if(tableSizes[0] == null){
                 System.out.println("NULL!");
@@ -272,6 +285,8 @@ public class PartitionJoin extends Configured implements Tool{
         }
 
         //A test function for the attempting implementation
+
+        /*
         private void test(){
             //The code below is pulled from my testing project. So change accordingly.
             int numReduers = Integer.parseInt(args[0]);
@@ -315,6 +330,7 @@ public class PartitionJoin extends Configured implements Tool{
             }
             System.out.println("Done");
         }
+        */
 
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             Text record = new Text();
@@ -353,7 +369,6 @@ public class PartitionJoin extends Configured implements Tool{
                    reducersArray=rangeFirst_S;
                 }else{
                     reducersArray=rangeSecond_S;
-
                 }
 
 //                else if(randInt < Integer.parseInt(rangeFirst_S.substring(0,rangeFirst_S.indexOf(" ")))){
