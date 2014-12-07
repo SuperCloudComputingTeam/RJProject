@@ -1,5 +1,6 @@
 package com.company;
 
+import java.awt.font.NumericShaper;
 import java.util.ArrayList;
 
 /**
@@ -9,7 +10,7 @@ public class Test
 {
     public ArrayList<ReducerRegion> Reducers = new ArrayList<ReducerRegion>();
 
-    public  void Test(double S, double T, double r) throws Exception {
+    public  void Test(double S, double T, double r, Range s_r , Range t_r) throws Exception {
         //Assume |S|<|T|
         //int numReduers = Integer.parseInt(args[0]);
         //int sSize = Integer.parseInt(args[1]);
@@ -18,6 +19,10 @@ public class Test
         double numReduers =r;
         double sSize=S;
         double tSize=T;
+        Range s_range = new Range();
+        s_range = s_r;
+        Range t_range =new Range();
+        t_range=t_r;
 
         numReduers=5;
         sSize=5;
