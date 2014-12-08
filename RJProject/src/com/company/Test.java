@@ -6,13 +6,20 @@ import java.util.HashMap;
  */
 public class Test
 {
-    public static ArrayList<ReducerRegion> Reducers =new ArrayList<ReducerRegion>();
-    public static int id =1;
-    public static int numReducer =5;
+    public ArrayList<ReducerRegion> Reducers;
+    public int id;
+    public int numReducer;
+
+    public Test()
+    {
+        Reducers =new ArrayList<ReducerRegion>();
+        id =1;
+        numReducer =5;
+    }
 
 
     // flag parameter means if the region flip before. It's initial value is true. When it flip, it turns to opposite
-    public static void Partition (double S, double T, double r, Range s_r, Range t_r, boolean fl) throws Exception {
+    public void Partition (double S, double T, double r, Range s_r, Range t_r, boolean fl) throws Exception {
         //Assume |S|<|T|
         //int numReduers = Integer.parseInt(args[0]);
         //int sSize = Integer.parseInt(args[1]);
@@ -319,24 +326,24 @@ public class Test
         }
     }
 
-    public static void GenerateHashMap(double sSize, double tSize, ArrayList<ReducerRegion> PartitionResult)
+    public void GenerateHashMap(double sSize, double tSize)
     {
         HashMap<String, String> map = new HashMap<String, String>();
-        String reducers=" ";
+        String reducersID=" ";
         for (int i=0;i<sSize;i++)
         {
             String line ="S";
             line = line+Integer.toString(i);
             for (int j=0;j<numReducer;j++)
             {
-                if ( i>=PartitionResult.get(j).S_range.low && i<=PartitionResult.get(j).S_range.high)
+                if ( i>=Reducers.get(j).S_range.low && i<Reducers.get(j).S_range.high)
                 {
-                    reducers =reducers+Integer.toString(PartitionResult.get(j).reducersID)+" ";
+                    reducersID =reducersID+Integer.toString(Reducers.get(j).reducersID)+" ";
 
                 }
             }
-            map.put(line, reducers);
-            reducers="";
+            map.put(line, reducersID);
+            reducersID="";
         }
 
         for (int i=0;i<tSize;i++)
@@ -345,14 +352,14 @@ public class Test
             line = line+Integer.toString(i);
             for (int j=0;j<numReducer;j++)
             {
-                if ( i>=PartitionResult.get(j).T_range.low && i<PartitionResult.get(j).T_range.high)
+                if ( i>=Reducers.get(j).T_range.low && i<Reducers.get(j).T_range.high)
                 {
-                    reducers =reducers+Integer.toString(PartitionResult.get(j).reducersID)+" ";
+                    reducersID =reducersID+Integer.toString(Reducers.get(j).reducersID)+" ";
 
                 }
             }
-            map.put(line, reducers);
-            reducers="";
+            map.put(line, reducersID);
+            reducersID="";
         }
         System.out.print("gggg");
 
@@ -369,9 +376,11 @@ public class Test
         Range sRange = new Range(0,(int)sSize);
         Range tRange = new Range(0,(int)tSize);
         boolean flag =true;
-        Partition(sSize, tSize, numReduers, sRange, tRange, flag);
-        ArrayList<ReducerRegion> partitionResult =Test.Reducers;
-        GenerateHashMap(sSize,tSize,partitionResult);
+
+
+        Test stayup =new Test();
+        stayup.Partition(sSize, tSize, numReduers, sRange, tRange, flag);
+        stayup.GenerateHashMap(sSize,tSize);
         System.out.print("asd");
     }
 }
