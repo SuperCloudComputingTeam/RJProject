@@ -60,6 +60,7 @@ public class PartitionJoin extends Configured implements Tool{
         public static ArrayList<Range> T_range_list;
 
 
+        public ReducerManager reducerManager=null;
 
 
         //Can be used if needs to pass HashMap-like object among map-reduce tasks
@@ -108,47 +109,56 @@ public class PartitionJoin extends Configured implements Tool{
             int s_size=sSize.get();
             int t_size=tSize.get();
 
-            int c_S=0;
-            int c_T=0;
 
-            //********************************** paper implementation of partitioning *****************
 
-            //get the square length
-            int s_squareLength=0;
-            int t_squareLength=0;
+            reducerManager = new ReducerManager(total_number_of_reducers);
+            Range sRange = new Range(0,(int)s_size);
+            Range tRange = new Range(0,(int)t_size);
+            reducerManager.Partition(s_size, t_size, total_number_of_reducers, sRange, tRange, true);
 
-            if(s_size==t_size){
-                //for 4 reducers
-                //s_squareLength=s_size/2;
-                //t_squareLength=t_size/2;
-                limit1=s_size/2;
-                limit2=t_size/2;
 
-            }else if( s_size<= t_size/4.0){
-                isVertical=true;
-                int temp = (int) (t_size/4.0);
-                limit1=temp;
-                limit2=temp*2;
-                limit3=temp*3;
 
-            }else if (t_size<=s_size/4.0){
-                isHorizontal=true;
-                int temp = (int) (s_size/4.0);
-                limit1=temp;
-                limit2=temp*2;
-                limit3=temp*3;
-            }else {
-//                double divisor=Math.sqrt(s_size*t_size/4.0);
-//                //for 4 reducers, always divided by 2
-//                s_squareLength = s_size/2;
-//                t_squareLength = t_size/2;
-//                c_S = (int)(s_size/divisor);
-//                c_T=(int)(t_size/divisor);
-
-                limit1 = s_size/2;
-                limit2 = t_size/2;
-
-            }
+//            int c_S=0;
+//            int c_T=0;
+//
+//            //********************************** paper implementation of partitioning *****************
+//
+//            //get the square length
+//            int s_squareLength=0;
+//            int t_squareLength=0;
+//
+//            if(s_size==t_size){
+//                //for 4 reducers
+//                //s_squareLength=s_size/2;
+//                //t_squareLength=t_size/2;
+//                limit1=s_size/2;
+//                limit2=t_size/2;
+//
+//            }else if( s_size<= t_size/4.0){
+//                isVertical=true;
+//                int temp = (int) (t_size/4.0);
+//                limit1=temp;
+//                limit2=temp*2;
+//                limit3=temp*3;
+//
+//            }else if (t_size<=s_size/4.0){
+//                isHorizontal=true;
+//                int temp = (int) (s_size/4.0);
+//                limit1=temp;
+//                limit2=temp*2;
+//                limit3=temp*3;
+//            }else {
+////                double divisor=Math.sqrt(s_size*t_size/4.0);
+////                //for 4 reducers, always divided by 2
+////                s_squareLength = s_size/2;
+////                t_squareLength = t_size/2;
+////                c_S = (int)(s_size/divisor);
+////                c_T=(int)(t_size/divisor);
+//
+//                limit1 = s_size/2;
+//                limit2 = t_size/2;
+//
+//            }
 
             //This is the Optimization Step where we avoid the use of HashTable and just use variables to represent
             //the range of each partition
@@ -388,8 +398,46 @@ public class PartitionJoin extends Configured implements Tool{
             String tag = line.substring(0, i); //get the tag information (table origin info)
             record.set(line); //set the record to be the line information
 
-            String[] reducersArray = null; //store the destined reducers ids info
+            ArrayList<Integer> reducersArray = null; //store the destined reducers ids info
 
+
+
+            if(tag.contains("S")){
+                Random rand = new Random();
+                //Simulation of the randomization process
+                int randInt = rand.nextInt(sSize.get()); //generate a random number from 0 to the size of S
+                //tag = tag + Integer.toString(randInt);
+                for (int j = 0; j<total_number_of_reducers;j++){
+
+                    ReducerRegion var = reducerManager.Reducers.get(j);
+
+                    if ( j>=var.S_range.low && j<var.S_range.high)
+                    {
+                        reducersArray.add(var.reducersID);
+
+                    }
+                }
+
+
+
+            }
+            else{
+                Random rand = new Random();
+                int randInt = rand.nextInt(tSize.get());
+
+                for (int j = 0; j<total_number_of_reducers;j++){
+
+                    ReducerRegion var = reducerManager.Reducers.get(j);
+
+                    if ( j>=var.T_range.low && j<var.T_range.high)
+                    {
+                        reducersArray.add(var.reducersID);
+
+                    }
+                }
+
+            }
+            /*
             if(tag.contains("S")){
                 Random rand = new Random();
                 //Simulation of the randomization process
@@ -419,13 +467,7 @@ public class PartitionJoin extends Configured implements Tool{
                     reducersArray=rangeSecond_S;
                 }
 
-//                else if(randInt < Integer.parseInt(rangeFirst_S.substring(0,rangeFirst_S.indexOf(" ")))){
-//                    //falls into the first range
-//                    reducersArray = rangeFirst_S.substring(rangeFirst_S.indexOf(" ")+1).split(",");
-//                }
-//                else{
-//                    reducersArray = rangeSecond_S.substring(rangeSecond_S.indexOf(" ")+1).split(",");
-//                }
+
             }
             else{
                 Random rand = new Random();
@@ -451,15 +493,10 @@ public class PartitionJoin extends Configured implements Tool{
                 }else {
                     reducersArray=rangeSecond_T;
                 }
-                //check to see the range falls into the first range or the second range
-//                else if(randInt < Integer.parseInt(rangeFirst_T.substring(0,rangeFirst_T.indexOf(" ")))){
-//                    //falls into the first range
-//                    reducersArray = rangeFirst_T.substring(rangeFirst_T.indexOf(" ")+1).split(",");
-//                }
-//                else{
-//                    reducersArray = rangeSecond_T.substring(rangeSecond_T.indexOf(" ")+1).split(",");
-//                }
+
             }
+
+            */
 
             //------------------This portion of codes use the lookupTable-----//
             //look up in the lookup table and retrieve the reducer list
@@ -486,8 +523,8 @@ public class PartitionJoin extends Configured implements Tool{
             //Loop through the reducerArray and form key and value pair
             //and send each record to each reducer in the array
             if(reducersArray != null){
-                for (String  reducerID : reducersArray) {
-                    int j = Integer.parseInt(reducerID);
+                for (Integer  reducerID : reducersArray) {
+                    int j = reducerID;
                     context.write(new IntWritable(j), record );
                 }
             }
