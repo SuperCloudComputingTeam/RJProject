@@ -8,6 +8,7 @@ public class Test
 {
     public static ArrayList<ReducerRegion> Reducers =new ArrayList<ReducerRegion>();
     public static int id =1;
+    public static int numReducer =5;
 
 
     // flag parameter means if the region flip before. It's initial value is true. When it flip, it turns to opposite
@@ -318,10 +319,42 @@ public class Test
         }
     }
 
-    public void GenerateHashMap()
+    public static void GenerateHashMap(double sSize, double tSize, ArrayList<ReducerRegion> PartitionResult)
     {
         HashMap<String, String> map = new HashMap<String, String>();
+        String reducers=" ";
+        for (int i=0;i<sSize;i++)
+        {
+            String line ="S";
+            line = line+Integer.toString(i);
+            for (int j=0;j<numReducer;j++)
+            {
+                if ( i>=PartitionResult.get(j).S_range.low && i<=PartitionResult.get(j).S_range.high)
+                {
+                    reducers =reducers+Integer.toString(PartitionResult.get(j).reducersID)+" ";
 
+                }
+            }
+            map.put(line, reducers);
+            reducers="";
+        }
+
+        for (int i=0;i<tSize;i++)
+        {
+            String line ="T";
+            line = line+Integer.toString(i);
+            for (int j=0;j<numReducer;j++)
+            {
+                if ( i>=PartitionResult.get(j).T_range.low && i<=PartitionResult.get(j).T_range.high)
+                {
+                    reducers =reducers+Integer.toString(PartitionResult.get(j).reducersID)+" ";
+
+                }
+            }
+            map.put(line, reducers);
+            reducers="";
+        }
+        System.out.print("gggg");
 
     }
     public static void main(String[] args) throws Exception
@@ -338,6 +371,7 @@ public class Test
         boolean flag =true;
         Partition(sSize, tSize, numReduers, sRange, tRange, flag);
         ArrayList<ReducerRegion> partitionResult =Test.Reducers;
-        System.out.print("did it");
+        GenerateHashMap(sSize,tSize,partitionResult);
+        System.out.print("asd");
     }
 }
