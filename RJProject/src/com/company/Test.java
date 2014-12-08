@@ -345,7 +345,7 @@ public class Test
             line = line+Integer.toString(i);
             for (int j=0;j<numReducer;j++)
             {
-                if ( i>=PartitionResult.get(j).T_range.low && i<=PartitionResult.get(j).T_range.high)
+                if ( i>=PartitionResult.get(j).T_range.low && i<PartitionResult.get(j).T_range.high)
                 {
                     reducers =reducers+Integer.toString(PartitionResult.get(j).reducersID)+" ";
 
