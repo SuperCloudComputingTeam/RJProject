@@ -1,7 +1,12 @@
+package com.company;
+
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
+
+
  * Created by Alex on 12/6/14.
  */
 public class Test
@@ -9,12 +14,14 @@ public class Test
     public ArrayList<ReducerRegion> Reducers;
     public int id;
     public int numReducer;
+    public HashMap<String, String> map;
 
     public Test()
     {
         Reducers =new ArrayList<ReducerRegion>();
         id =1;
         numReducer =5;
+        map = new HashMap<String, String>();
     }
 
 
@@ -328,7 +335,6 @@ public class Test
 
     public void GenerateHashMap(double sSize, double tSize)
     {
-        HashMap<String, String> map = new HashMap<String, String>();
         String reducersID=" ";
         for (int i=0;i<sSize;i++)
         {
