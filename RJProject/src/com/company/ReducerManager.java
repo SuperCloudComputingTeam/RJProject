@@ -17,8 +17,6 @@ public class ReducerManager{
     {
         Reducers =new ArrayList<ReducerRegion>();
         id =1;
-//        numReducer = total_reducers;
-        //map = new HashMap<String, String>();
     }
 
 
@@ -134,36 +132,47 @@ public class ReducerManager{
             int s_leftLength = -1;
             int t_leftLength = -1;
             int numLeftReducers = -1;
+            int numUsereducers=-1;
+            double sIndex;
+            double tIndex;
 
             double floorDiff = Math.abs(Math.pow(lowBoundLength,2)-idealSquareArea);
             double mediDiff = Math.abs(lowBoundLength*highBoundLength-idealSquareArea);
             double ceilDiff = Math.abs(Math.pow(highBoundLength,2)-idealSquareArea);
 
             //find length of each side of region(s_regionLength and t_regionLength)
+            //@@@@@@@@@
             if (Math.min(Math.min(floorDiff,mediDiff),ceilDiff) == floorDiff)
             {
                 s_regionLength = (int)lowBoundLength;
                 t_regionLength = (int)lowBoundLength;
             }
+
             else if (Math.min(Math.min(floorDiff,mediDiff),ceilDiff) == mediDiff)
             {
                 s_regionLength = (int)lowBoundLength;
                 t_regionLength = (int)highBoundLength;
             }
+            //@@@@@@@@@@
             else
             {
                 s_regionLength =(int)highBoundLength;
                 t_regionLength = (int)highBoundLength;
             }
-            numLeftReducers = (int)(numReduers-Math.floor(sCoefficient)*Math.floor(tCoefficient));
-            s_leftLength = (int)(sSize-Math.floor(sCoefficient) * s_regionLength);
-            t_leftLength = (int)(tSize-Math.floor(tCoefficient) * t_regionLength);
 
+            sIndex = Math.floor(sSize/s_regionLength);
+            tIndex = Math.floor(tSize/t_regionLength);
+            numUsereducers =(int)(sIndex*tIndex);
+            numLeftReducers = (int)(numReduers-sIndex*tIndex);
+            s_leftLength = (int)(sSize-sIndex * s_regionLength);
+            t_leftLength = (int)(tSize-tIndex * t_regionLength);
+
+            //@@@@@@@@@
             //assign reducers id to every region
-            for (int i=0;i<Math.floor(sCoefficient);i++)
+            for (int i=0;i<Math.floor(sSize/s_regionLength);i++)
             {
                 Range s_perfectRangeTemp =new Range((i*s_regionLength),((i+1)*s_regionLength));
-                for (int j=0;j<Math.floor(tCoefficient);j++)
+                for (int j=0;j<Math.floor(tSize/t_regionLength);j++)
                 {
                     Range t_perfectRangeTemp = new Range((j*t_regionLength),((j+1)*t_regionLength));
                     ReducerRegion reducer =new ReducerRegion(s_perfectRangeTemp,t_perfectRangeTemp,id);
@@ -176,153 +185,283 @@ public class ReducerManager{
             // find the optimal cut which partitions have minimum difference
             if (s_leftLength!=0 && t_leftLength!=0)
             {
-                if (Math.min(Math.abs(s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)),Math.abs(t_leftLength*sSize-s_leftLength*(tSize-t_leftLength)))==Math.abs(s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)))
+                // two cases. only one reducer left for L area and more than one reducers left.
+                if (numLeftReducers ==1)
                 {
-                    if (s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)>0)
-
+                  //only one reducer left for L area
+                  // pick the partition which the difference between partitions are bigger
+                    Reducers.clear();
+                    id =0;
+                    Range sRangeOneReducerLeft;
+                    Range tRangeOneReducerLeft;
+                    Range sLeft;
+                    Range tLeft;
+                    if (Math.min(Math.abs(s_leftLength * tSize - t_leftLength * (sSize - s_leftLength)), Math.abs(t_leftLength * sSize - s_leftLength * (tSize - t_leftLength)))==Math.abs(s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)))
                     {
-                        //assign more reducers to bigger part.
-                        if (s_leftLength<tSize)
+                        //cut it horizontally and extend right
+                        // check which side is longer and make it T. Otherwise make it S
+                        if (sSize-s_leftLength>tSize)
                         {
-                            sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
-                            tRangeTemp  = new Range(tRange.low, tRange.high);
-                            Partition(s_leftLength, t_leftLength, Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+                            // it need to flip
+                            sRangeOneReducerLeft = new Range(tRange.low,tRange.high);
+                            tRangeOneReducerLeft = new Range(sRange.low,sRange.high-s_leftLength);
+                            Partition(tSize-t_leftLength,sSize,numUsereducers,sRangeOneReducerLeft,tRangeOneReducerLeft,!flag);
+
 
                         }
                         else
                         {
-                            System.out.print("s_leftLength>tSize");
-                            System.exit(7);
+                            sRangeOneReducerLeft = new Range(sRange.low,sRange.high-s_leftLength);
+                            tRangeOneReducerLeft = new Range(tRange.low,tRange.high);
+                            Partition(sSize-s_leftLength,tSize,numUsereducers,sRangeOneReducerLeft,tRangeOneReducerLeft,flag);
                         }
-                        //assign fewer reducers to smaller part.
-                        if (t_leftLength<tSize-s_leftLength)
+                        // assign left row to reducer
+                        sLeft = new Range(sRange.high-s_leftLength,sRange.high);
+                        tLeft = new Range(tRange.low,tRange.high);
+                        ReducerRegion reducer =new ReducerRegion(sLeft,tLeft,id);
+                        Reducers.add(reducer);
+                        id++;
+
+
+                    }
+                    else
+                    // cut it vertically and extend below
+                    {
+                        // check which side is longer and make it T. Otherwise make it S
+                        if (sSize>tSize-t_leftLength)
                         {
-                            sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
-                            tRangeTemp  = new Range(tRange.low, tRange.high-s_leftLength);
-                            Partition(s_leftLength, t_leftLength, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+                            // it need to flip
+                            sRangeOneReducerLeft = new Range(tRange.low,tRange.high-t_leftLength);
+                            tRangeOneReducerLeft = new Range(sRange.low,sRange.high);
+                            Partition(tSize-t_leftLength,sSize,numUsereducers,sRangeOneReducerLeft,tRangeOneReducerLeft,!flag);
 
                         }
                         else
                         {
-                            System.out.print("t_leftLength>tSize-s_leftLength");
-                            System.exit(7);
+                            sRangeOneReducerLeft = new Range(sRange.low,sRange.high);
+                            tRangeOneReducerLeft = new Range(tRange.low,tRange.high-t_leftLength);
+                            Partition(sSize-s_leftLength,sSize,numUsereducers,sRangeOneReducerLeft,tRangeOneReducerLeft,flag);
+                        }
+                        // assign left column to reducer
+                        sLeft = new Range(sRange.low,sRange.high);
+                        tLeft = new Range(tRange.high-t_leftLength,tRange.high);
+                        ReducerRegion reducer =new ReducerRegion(sLeft,tLeft,id);
+                        Reducers.add(reducer);
+                        id++;
+                    }
+
+
+
+                }
+                else if (numLeftReducers ==0)
+                {
+                    Reducers.clear();
+                    id =0;
+                    if (t_leftLength!=0)
+                     // one colume left
+                    {
+                        for (int i=0;i<Math.floor(sSize/s_regionLength);i++)
+                            // assign reducers Id to every region and extend the last few regions
+                        {
+                            Range s_perfectRangeTemp =new Range((i*s_regionLength),((i+1)*s_regionLength));
+                            for (int j=0;j<Math.floor(tSize/t_regionLength)-1;j++)
+                            {
+                                Range t_perfectRangeTemp = new Range((j*t_regionLength),((j+1)*t_regionLength));
+                                ReducerRegion reducer =new ReducerRegion(s_perfectRangeTemp,t_perfectRangeTemp,id);
+                                Reducers.add(reducer);
+                                id++;
+                            }
+                            // extend t_regionLength
+                            Range t_perfectRangeTemp = new Range(tRange.high-(t_leftLength+t_regionLength),tRange.high);
+                            ReducerRegion reducer =new ReducerRegion(s_perfectRangeTemp,t_perfectRangeTemp,id);
+                            Reducers.add(reducer);
+                            id++;
+
                         }
 
                     }
                     else
+                    // one row left
                     {
-                        //assign fewer reducers to small part.
-                        if (s_leftLength<tSize)
+                        for (int i=0;i<Math.floor(tSize/t_regionLength);i++)
+                        // assign reducers Id to every region and extend the last few regions
                         {
-                            sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
-                            tRangeTemp  = new Range(tRange.low, tRange.high);
-                            Partition(s_leftLength, t_leftLength, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+                            Range t_perfectRangeTemp =new Range((i*t_regionLength),((i+1)*t_regionLength));
+                            for (int j=0;j<Math.floor(sSize/s_regionLength)-1;j++)
+                            {
+                                Range s_perfectRangeTemp = new Range((j*s_regionLength),((j+1)*s_regionLength));
+                                ReducerRegion reducer =new ReducerRegion(s_perfectRangeTemp,t_perfectRangeTemp,id);
+                                Reducers.add(reducer);
+                                id++;
+                            }
+                            // extend s_regionLength
+                            Range s_perfectRangeTemp = new Range(sRange.high-(s_leftLength+s_regionLength),sRange.high);
+                            ReducerRegion reducer =new ReducerRegion(s_perfectRangeTemp,t_perfectRangeTemp,id);
+                            Reducers.add(reducer);
+                            id++;
 
                         }
-                        else
-                        {
-                            System.out.print("s_leftLength>tSize");
-                            System.exit(7);
-                        }
-                        //assign more reducers to big part.
-                        if (t_leftLength<tSize-s_leftLength)
-                        {
-                            sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
-                            tRangeTemp  = new Range(tRange.low, tRange.high-s_leftLength);
-                            Partition(s_leftLength, t_leftLength, -Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
 
-                        }
-                        else
-                        {
-                            System.out.print("t_leftLength>tSize-s_leftLength");
-                            System.exit(7);
-                        }
                     }
                 }
-                /////////////////////////////////////////debug successfully//////////////////
-                else//18 and 5
+                else
                 {
-                    if (t_leftLength*sSize-s_leftLength*(tSize-t_leftLength)>0) //18
+                    if (Math.min(Math.abs(s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)),Math.abs(t_leftLength*sSize-s_leftLength*(tSize-t_leftLength)))==Math.abs(s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)))
                     {
-                        //assign more reducers to bigger part.
-                        if (t_leftLength<sSize)
+                        //cut horizontally
+                        if (s_leftLength*tSize-t_leftLength*(sSize-s_leftLength)>0)
+
                         {
-                            sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
-                            tRangeTemp = new Range(sRange.low,sRange.high);
-                            Partition(t_leftLength, sSize, Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, !flag);
+                            //assign more reducers to bigger part.
+                            if (s_leftLength<tSize)
+                            {
+                                sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
+                                tRangeTemp  = new Range(tRange.low, tRange.high);
+                                Partition(s_leftLength, t_leftLength, Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+
+                            }
+                            else
+                            {
+                                System.out.print("s_leftLength>tSize");
+                                System.exit(7);
+                            }
+                            //assign fewer reducers to smaller part.
+                            if (t_leftLength<tSize-s_leftLength)
+                            {
+                                sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
+                                tRangeTemp  = new Range(tRange.low, tRange.high-s_leftLength);
+                                Partition(s_leftLength, t_leftLength, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+
+                            }
+                            else
+                            {
+                                System.out.print("t_leftLength>tSize-s_leftLength");
+                                System.exit(7);
+                            }
+
                         }
                         else
                         {
-                            //sRangeTemp = new Range(sRange.low,sRange.high-s_leftLength);
-                            //tRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
-                            //Test(tSize-t_leftLength,s_leftLength,Math.ceil(numLeftReducers/2),sRangeTemp,tRangeTemp,flag);
-                            System.out.print("t_leftLength>sSize");
-                            System.exit(7);
-                        }
-                        //assign fewer reducers to smaller part.
-                        if (tSize-t_leftLength>s_leftLength)
-                        {
-                            sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
-                            tRangeTemp = new Range(tRange.low,tRange.high-t_leftLength);
-                            Partition(s_leftLength, tSize - t_leftLength, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
-                        }
-                        else
-                        {
-                            System.out.print("tSize-t_leftLength<s_leftLength");
-                            System.exit(8);
-                        }
+                            //assign fewer reducers to small part.
+                            if (s_leftLength<tSize)
+                            {
+                                sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
+                                tRangeTemp  = new Range(tRange.low, tRange.high);
+                                Partition(s_leftLength, t_leftLength, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
 
+                            }
+                            else
+                            {
+                                System.out.print("s_leftLength>tSize");
+                                System.exit(7);
+                            }
+                            //assign more reducers to big part.
+                            if (t_leftLength<tSize-s_leftLength)
+                            {
+                                sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
+                                tRangeTemp  = new Range(tRange.low, tRange.high-s_leftLength);
+                                Partition(s_leftLength, t_leftLength, -Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
 
+                            }
+                            else
+                            {
+                                System.out.print("t_leftLength>tSize-s_leftLength");
+                                System.exit(7);
+                            }
+                        }
                     }
 
-                    else //5
+                    else// cut vertically 18 and 5
                     {
-                        //assign fewer reducers to smaller part. 5
-                        if (t_leftLength<sSize)
+                        if (t_leftLength*sSize-s_leftLength*(tSize-t_leftLength)>0) //18
                         {
-                            sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
-                            tRangeTemp = new Range(sRange.low,sRange.high);
-                            Partition(t_leftLength, sSize, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, !flag);
-                        }
-                        else
-                        {
-                            //sRangeTemp = new Range(sRange.low,sRange.high-s_leftLength);
-                            //tRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
-                            //Test(tSize-t_leftLength,s_leftLength,numLeftReducers-Math.ceil(numLeftReducers/2),sRangeTemp,tRangeTemp,flag);
-                            System.out.print("t_leftLength>sSize");
-                            System.exit(7);
-                        }
-                        //assign more reducers to bigger part. 18
-                        if (tSize-t_leftLength>s_leftLength)
-                        {
-                            sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
-                            tRangeTemp = new Range(tRange.low,tRange.high-t_leftLength);
-                            Partition(s_leftLength, tSize - t_leftLength, Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
-                        }
-                        else
-                        {
-                            System.out.print("tSize<s_leftLength");
-                            System.exit(8);
-                        }
+                            //assign more reducers to bigger part.
+                            if (t_leftLength<sSize)
+                            {
+                                sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
+                                tRangeTemp = new Range(sRange.low,sRange.high);
+                                Partition(t_leftLength, sSize, Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, !flag);
+                            }
+                            else
+                            {
+                                //sRangeTemp = new Range(sRange.low,sRange.high-s_leftLength);
+                                //tRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
+                                //Test(tSize-t_leftLength,s_leftLength,Math.ceil(numLeftReducers/2),sRangeTemp,tRangeTemp,flag);
+                                System.out.print("t_leftLength>sSize");
+                                System.exit(7);
+                            }
+                            //assign fewer reducers to smaller part.
+                            if (tSize-t_leftLength>s_leftLength)
+                            {
+                                sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
+                                tRangeTemp = new Range(tRange.low,tRange.high-t_leftLength);
+                                Partition(s_leftLength, tSize - t_leftLength, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+                            }
+                            else
+                            {
+                                System.out.print("tSize-t_leftLength<s_leftLength");
+                                System.exit(8);
+                            }
 
+
+                        }
+                        //@@@@@@@@@
+                        else //5
+                        {
+                            //assign fewer reducers to smaller part. 5
+                            if (t_leftLength<sSize)
+                            {
+                                sRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
+                                tRangeTemp = new Range(sRange.low,sRange.high);
+                                Partition(t_leftLength, sSize, numLeftReducers - Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, !flag);
+                            }
+                            else
+                            {
+                                //sRangeTemp = new Range(sRange.low,sRange.high-s_leftLength);
+                                //tRangeTemp = new Range(tRange.high-t_leftLength,tRange.high);
+                                //Test(tSize-t_leftLength,s_leftLength,numLeftReducers-Math.ceil(numLeftReducers/2),sRangeTemp,tRangeTemp,flag);
+                                System.out.print("t_leftLength>sSize");
+                                System.exit(7);
+                            }
+                            //assign more reducers to bigger part. 18
+                            if (tSize-t_leftLength>s_leftLength)
+                            {
+                                sRangeTemp = new Range(sRange.high-s_leftLength,sRange.high);
+                                tRangeTemp = new Range(tRange.low,tRange.high-t_leftLength);
+                                Partition(s_leftLength, tSize - t_leftLength, Math.ceil(numLeftReducers / 2), sRangeTemp, tRangeTemp, flag);
+                            }
+                            else
+                            {
+                                System.out.print("tSize-t_leftLength<s_leftLength");
+                                System.exit(8);
+                            }
+
+                        }
+                        /////////////////////////////////////////////////////////////////////////////////
                     }
-                    /////////////////////////////////////////////////////////////////////////////////
                 }
             }
-            else if (s_leftLength==0)
+            else if (t_leftLength==0&&s_leftLength!=0)
             {
                 // only one row  left
-                Range ss = new Range(tRange.high-t_leftLength,tRange.high);
-                Range tt = new Range(sRange.low,sRange.high);
-                Partition(tSize - t_leftLength, sSize, numLeftReducers, ss, tt, !flag);
-
-            }
-            else
-            {
-                //only one column left
                 Range ss = new Range(sRange.high-s_leftLength,sRange.high);
                 Range tt = new Range(tRange.low,tRange.high);
-                Partition(tSize - t_leftLength, sSize, numLeftReducers, ss, tt, flag);
+                Partition(s_leftLength, tSize, numLeftReducers, ss, tt, flag);
+
+
+
+            }
+            else if(s_leftLength==0&&t_leftLength!=0)
+            {
+                //only one column left
+                Range ss = new Range(tRange.high-t_leftLength,tRange.high);
+                Range tt = new Range(sRange.low,sRange.high);
+                Partition(t_leftLength, sSize, numLeftReducers, ss, tt, !flag);
+            }
+
+            else //no area left
+            {
+                return;
             }
 
 
@@ -332,51 +471,51 @@ public class ReducerManager{
         }
     }
 
-    /*
-    public void GenerateHashMap(double sSize, double tSize)
-    {
-        String reducersID=" ";
-        for (int i=0;i<sSize;i++)
-        {
-            String line ="S";
-            line = line+Integer.toString(i);
-            for (int j=0;j<numReducer;j++)
-            {
-                if ( i>=Reducers.get(j).S_range.low && i<Reducers.get(j).S_range.high)
-                {
-                    reducersID =reducersID+Integer.toString(Reducers.get(j).reducersID)+" ";
+//    public void GenerateHashMap(double sSize, double tSize)
+//    {
+//        String reducersID=" ";
+//        for (int i=0;i<sSize;i++)
+//        {
+//            String line ="S";
+//            line = line+Integer.toString(i);
+//            for (int j=0;j<numReducer;j++)
+//            {
+//                if ( i>=Reducers.get(j).S_range.low && i<Reducers.get(j).S_range.high)
+//                {
+//                    reducersID =reducersID+Integer.toString(Reducers.get(j).reducersID)+" ";
+//
+//                }
+//            }
+//            map.put(line, reducersID);
+//            reducersID="";
+//        }
+//
+//        for (int i=0;i<tSize;i++)
+//        {
+//            String line ="T";
+//            line = line+Integer.toString(i);
+//            for (int j=0;j<numReducer;j++)
+//            {
+//                if ( i>=Reducers.get(j).T_range.low && i<Reducers.get(j).T_range.high)
+//                {
+//                    reducersID =reducersID+Integer.toString(Reducers.get(j).reducersID)+" ";
+//
+//                }
+//            }
+//            map.put(line, reducersID);
+//            reducersID="";
+//        }
+//        System.out.print("gggg");
+//
+//    }
 
-                }
-            }
-            map.put(line, reducersID);
-            reducersID="";
-        }
-
-        for (int i=0;i<tSize;i++)
-        {
-            String line ="T";
-            line = line+Integer.toString(i);
-            for (int j=0;j<numReducer;j++)
-            {
-                if ( i>=Reducers.get(j).T_range.low && i<Reducers.get(j).T_range.high)
-                {
-                    reducersID =reducersID+Integer.toString(Reducers.get(j).reducersID)+" ";
-
-                }
-            }
-            map.put(line, reducersID);
-            reducersID="";
-        }
-        System.out.print("gggg");
-
-    }
     public static void main(String[] args) throws Exception
     {
 
         //int numReduers = Integer.parseInt(args[0]);
         //int sSize = Integer.parseInt(args[1]);
         //int tSize = Integer.parseInt(args[2]);
-        double sSize =5;
+        double sSize =9;
         double tSize =10;
         int numReduers = 5;
         Range sRange = new Range(0,(int)sSize);
@@ -384,11 +523,11 @@ public class ReducerManager{
         boolean flag =true;
 
 
-        Test stayup =new Test();
-        stayup.Partition(sSize, tSize, numReduers, sRange, tRange, flag);
-        stayup.GenerateHashMap(sSize,tSize);
+        ReducerManager test =new ReducerManager(numReduers);
+        test.Partition(sSize, tSize, numReduers, sRange, tRange, flag);
+        //stayup.GenerateHashMap(sSize,tSize);
         System.out.print("asd");
     }
-    */
+
 
 }
