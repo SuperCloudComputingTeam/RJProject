@@ -57,6 +57,22 @@ public class ReducerManager{
             //Ideal Case
             System.out.println("Ideal Case");
 
+            Range idealsRange;
+            Range idealtRange;
+
+            for (int i=0; i<sCoefficient;i++)
+            {
+                for (int j=0;j<tCoefficient;j++)
+                {
+                    idealsRange = new Range((int)(i*idealSquareLength),(int)((i+1)*idealSquareLength));
+                    idealtRange = new Range((int)(j*idealSquareLength),(int)((j+1)*idealSquareLength));
+                    ReducerRegion reducer = new ReducerRegion(idealsRange,idealtRange,id);
+                    Reducers.add(reducer);
+                    id++;
+                }
+
+            }
+
         }
         //**********************************************Extreme Case**********************************************************
         else if (sSize < tSize/numReduers)
@@ -515,7 +531,7 @@ public class ReducerManager{
         //int numReduers = Integer.parseInt(args[0]);
         //int sSize = Integer.parseInt(args[1]);
         //int tSize = Integer.parseInt(args[2]);
-        double sSize =9;
+        double sSize =5;
         double tSize =10;
         int numReduers = 5;
         Range sRange = new Range(0,(int)sSize);

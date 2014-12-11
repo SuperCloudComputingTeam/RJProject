@@ -417,7 +417,7 @@ public class PartitionJoin extends Configured implements Tool{
 
                     ReducerRegion var = reducerManager.Reducers.get(j);
 
-                    if ( j>=var.S_range.low && j<var.S_range.high)
+                    if ( randInt>=var.S_range.low && randInt<var.S_range.high)
                     {
                         reducersArray.add(var.reducersID);
 
@@ -433,7 +433,7 @@ public class PartitionJoin extends Configured implements Tool{
 
                     ReducerRegion var = reducerManager.Reducers.get(j);
 
-                    if ( j>=var.T_range.low && j<var.T_range.high)
+                    if ( randInt>=var.T_range.low && randInt<var.T_range.high)
                     {
                         reducersArray.add(var.reducersID);
 
