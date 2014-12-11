@@ -478,6 +478,8 @@ public class ReducerManager{
             else //no area left
             {
                 return;
+                //2,15,5 wil go to the ideal case
+
             }
 
 
