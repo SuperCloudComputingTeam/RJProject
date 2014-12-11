@@ -91,6 +91,7 @@ public class PartitionJoin extends Configured implements Tool{
 
             total_number_of_reducers=context.getNumReduceTasks();
 
+
             if(tableSizes[0] == null){
                 System.out.println("NULL!");
             }
@@ -114,7 +115,12 @@ public class PartitionJoin extends Configured implements Tool{
             reducerManager = new ReducerManager(total_number_of_reducers);
             Range sRange = new Range(0,(int)s_size);
             Range tRange = new Range(0,(int)t_size);
-            reducerManager.Partition(s_size, t_size, total_number_of_reducers, sRange, tRange, true);
+
+            if(s_size<t_size)
+                reducerManager.Partition(s_size, t_size, total_number_of_reducers, sRange, tRange, true);
+            else {
+                reducerManager.Partition(t_size, s_size, total_number_of_reducers, sRange, tRange, true);
+            }
 
 
 
@@ -398,7 +404,7 @@ public class PartitionJoin extends Configured implements Tool{
             String tag = line.substring(0, i); //get the tag information (table origin info)
             record.set(line); //set the record to be the line information
 
-            ArrayList<Integer> reducersArray = null; //store the destined reducers ids info
+            ArrayList<Integer> reducersArray = new ArrayList<Integer>(); //store the destined reducers ids info
 
 
 
@@ -411,14 +417,12 @@ public class PartitionJoin extends Configured implements Tool{
 
                     ReducerRegion var = reducerManager.Reducers.get(j);
 
-                    if ( j>=var.S_range.low && j<var.S_range.high)
+                    if ( randInt>=var.S_range.low && randInt<var.S_range.high)
                     {
                         reducersArray.add(var.reducersID);
 
                     }
                 }
-
-
 
             }
             else{
@@ -429,7 +433,7 @@ public class PartitionJoin extends Configured implements Tool{
 
                     ReducerRegion var = reducerManager.Reducers.get(j);
 
-                    if ( j>=var.T_range.low && j<var.T_range.high)
+                    if ( randInt>=var.T_range.low && randInt<var.T_range.high)
                     {
                         reducersArray.add(var.reducersID);
 
@@ -630,7 +634,7 @@ public class PartitionJoin extends Configured implements Tool{
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
 
-        job.setNumReduceTasks(4);
+        //job.setNumReduceTasks(4);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         job.setInputFormatClass(TextInputFormat.class);

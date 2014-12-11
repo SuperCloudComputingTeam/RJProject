@@ -533,9 +533,9 @@ public class ReducerManager{
         //int numReduers = Integer.parseInt(args[0]);
         //int sSize = Integer.parseInt(args[1]);
         //int tSize = Integer.parseInt(args[2]);
-        double sSize =8;
-        double tSize =8;
-        int numReduers = 4;
+        double sSize =5;
+        double tSize =10;
+        int numReduers = 5;
         Range sRange = new Range(0,(int)sSize);
         Range tRange = new Range(0,(int)tSize);
         boolean flag =true;
